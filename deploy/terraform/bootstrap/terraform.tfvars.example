@@ -1,0 +1,3 @@
+# Copia este archivo a terraform.tfvars. Ese archivo no se sube al repositorio.
+alert_email       = "tu-correo@example.com"
+github_repository = "tu-usuario/floorhub"

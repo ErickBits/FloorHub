@@ -1,0 +1,41 @@
+# Manual a propósito: el clúster solo existe el día de la demo y cada hora cuesta dinero.
+name: Deploy to AWS
+
+on:
+  workflow_dispatch:
+    inputs:
+      image_tag:
+        description: SHA completo del commit cuyas imágenes se desplegarán
+        required: true
+        type: string
+
+permissions:
+  contents: read
+  id-token: write # Necesario para OIDC
+
+concurrency:
+  group: aws-demo
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    # Configura revisores obligatorios en este Environment para exigir aprobación manual.
+    environment: demo
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v7
+      - uses: aws-actions/configure-aws-credentials@v6
+        with:
+          role-to-assume: ${{ vars.AWS_ROLE_ARN }}
+          aws-region: us-east-1
+          role-duration-seconds: 7200
+      - uses: hashicorp/setup-terraform@v4
+        with:
+          terraform_wrapper: false
+      - uses: azure/setup-kubectl@v5
+      - name: Desplegar
+        env:
+          IMAGE_OWNER: ${{ github.repository_owner }}
+          IMAGE_TAG: ${{ inputs.image_tag }}
+        run: ./scripts/deploy.sh

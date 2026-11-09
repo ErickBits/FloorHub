@@ -1,0 +1,52 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: migrate-seed
+spec:
+  backoffLimit: 3
+  activeDeadlineSeconds: 300
+  ttlSecondsAfterFinished: 3600
+  template:
+    metadata:
+      labels:
+        app: migrate-seed
+    spec:
+      restartPolicy: Never
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: migrate
+          image: floorhub-migrate
+          command: ["node", "src/cli.js", "all"]
+          envFrom:
+            - configMapRef:
+                name: floorhub-config
+          env:
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: floorhub-secrets
+                  key: DATABASE_URL
+            - name: MIGRATION_DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: floorhub-secrets
+                  key: MIGRATION_DATABASE_URL
+            - name: SEED_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: floorhub-secrets
+                  key: SEED_PASSWORD
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
+          resources:
+            requests: { cpu: 100m, memory: 128Mi }
+            limits: { cpu: 500m, memory: 256Mi }

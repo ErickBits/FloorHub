@@ -1,0 +1,37 @@
+name: Destroy AWS
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirm:
+        description: Escribe DESTRUIR para confirmar
+        required: true
+        type: string
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: aws-demo
+  cancel-in-progress: false
+
+jobs:
+  destroy:
+    if: inputs.confirm == 'DESTRUIR'
+    runs-on: ubuntu-latest
+    environment: demo
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v7
+      - uses: aws-actions/configure-aws-credentials@v6
+        with:
+          role-to-assume: ${{ vars.AWS_ROLE_ARN }}
+          aws-region: us-east-1
+          role-duration-seconds: 7200
+      - uses: hashicorp/setup-terraform@v4
+        with:
+          terraform_wrapper: false
+      - uses: azure/setup-kubectl@v5
+      - name: Destruir
+        run: ./scripts/destroy.sh

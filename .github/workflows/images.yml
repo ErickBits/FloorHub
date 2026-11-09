@@ -1,0 +1,48 @@
+name: Images
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { service: api, dockerfile: Dockerfile.node, workspace: apps/api }
+          - { service: gateway, dockerfile: Dockerfile.node, workspace: apps/gateway }
+          - { service: worker, dockerfile: Dockerfile.node, workspace: apps/worker }
+          - { service: migrate, dockerfile: Dockerfile.node, workspace: db }
+          - { service: nginx, dockerfile: Dockerfile.nginx, workspace: "" }
+    env:
+      # Un PR desde un fork no recibe permiso de escritura: ahí solo se comprueba que construya.
+      PUSH: ${{ github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository }}
+      COMMIT_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: docker/setup-buildx-action@v4
+      - uses: docker/login-action@v4
+        if: env.PUSH == 'true'
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Calcular el nombre de la imagen
+        run: echo "IMAGE=ghcr.io/$(echo "$GITHUB_REPOSITORY_OWNER" | tr '[:upper:]' '[:lower:]')/floorhub-${{ matrix.service }}:$COMMIT_SHA" >> "$GITHUB_ENV"
+      - uses: docker/build-push-action@v7
+        with:
+          context: .
+          file: deploy/docker/${{ matrix.dockerfile }}
+          build-args: ${{ matrix.workspace && format('WORKSPACE={0}', matrix.workspace) || '' }}
+          push: ${{ env.PUSH == 'true' }}
+          tags: ${{ env.IMAGE }}
+          labels: org.opencontainers.image.source=https://github.com/${{ github.repository }}
+          cache-from: type=gha,scope=${{ matrix.service }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.service }}

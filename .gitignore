@@ -1,0 +1,17 @@
+node_modules/
+dist/
+coverage/
+.env
+*.log
+.DS_Store
+
+# Terraform: el estado contiene secretos.
+.terraform/
+*.tfstate
+*.tfstate.*
+*.tfvars
+!*.tfvars.example
+crash.log
+
+# Secretos locales de Kubernetes
+deploy/k8s/overlays/*/secrets.env

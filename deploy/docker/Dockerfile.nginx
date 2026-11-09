@@ -1,0 +1,18 @@
+FROM node:26-alpine AS build
+WORKDIR /app
+COPY package.json package-lock.json ./
+COPY apps/api/package.json apps/api/
+COPY apps/gateway/package.json apps/gateway/
+COPY apps/worker/package.json apps/worker/
+COPY apps/web/package.json apps/web/
+COPY packages/shared/package.json packages/shared/
+COPY db/package.json db/
+RUN npm ci --no-audit --no-fund --workspace apps/web --include-workspace-root=false
+COPY apps/web apps/web
+RUN npm run build --workspace apps/web
+
+# Esta variante de Nginx corre sin root y escucha en 8080.
+FROM nginxinc/nginx-unprivileged:1-alpine
+COPY deploy/docker/nginx.conf /etc/nginx/conf.d/default.conf
+COPY --from=build /app/apps/web/dist /usr/share/nginx/html
+EXPOSE 8080

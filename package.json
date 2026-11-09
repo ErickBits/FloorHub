@@ -1,0 +1,31 @@
+{
+  "name": "floorhub",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Plataforma interna para el piso de operaciones de un BPO",
+  "workspaces": [
+    "apps/*",
+    "packages/*",
+    "db"
+  ],
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "lint": "eslint .",
+    "test": "vitest run",
+    "migrate": "npm run migrate -w db",
+    "seed": "npm run seed -w db",
+    "build:web": "npm run build -w apps/web"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.39.5",
+    "eslint": "^9.39.5",
+    "eslint-plugin-react": "^7.37.5",
+    "globals": "^17.14.0",
+    "socket.io-client": "^4.8.4",
+    "supertest": "^7.3.1",
+    "vitest": "^5.1.0"
+  }
+}

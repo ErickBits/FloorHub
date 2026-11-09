@@ -1,0 +1,8 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: floorhub-config
+data:
+  LOG_LEVEL: info
+  PORT: "3000"
+  REDIS_URL: redis://redis:6379/0

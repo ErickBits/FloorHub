@@ -1,0 +1,47 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: floorhub
+resources:
+  - ../../base
+# scripts/deploy.sh sustituye OWNER y latest por el propietario y el SHA del commit.
+images:
+  - name: floorhub-api
+    newName: ghcr.io/OWNER/floorhub-api
+    newTag: latest
+  - name: floorhub-gateway
+    newName: ghcr.io/OWNER/floorhub-gateway
+    newTag: latest
+  - name: floorhub-worker
+    newName: ghcr.io/OWNER/floorhub-worker
+    newTag: latest
+  - name: floorhub-nginx
+    newName: ghcr.io/OWNER/floorhub-nginx
+    newTag: latest
+  - name: floorhub-migrate
+    newName: ghcr.io/OWNER/floorhub-migrate
+    newTag: latest
+configMapGenerator:
+  - name: floorhub-config
+    behavior: merge
+    literals:
+      # Activa TLS verificado contra RDS. La CA viene incluida en la imagen.
+      - DB_SSL_CA_FILE=/etc/ssl/rds/global-bundle.pem
+      - NODE_ENV=production
+generatorOptions:
+  disableNameSuffixHash: true
+patches:
+  - target:
+      kind: Service
+      name: nginx
+    patch: |-
+      - op: add
+        path: /spec/type
+        value: LoadBalancer
+      - op: add
+        path: /metadata/annotations
+        value:
+          # Sin esta anotación, Kubernetes crearía un Classic ELB en lugar de un NLB.
+          service.beta.kubernetes.io/aws-load-balancer-type: nlb
+          service.beta.kubernetes.io/aws-load-balancer-scheme: internet-facing
+          # El NLB lo crea Kubernetes, no Terraform: sin esta etiqueta make cost-check no lo vería.
+          service.beta.kubernetes.io/aws-load-balancer-additional-resource-tags: Project=floorhub

@@ -1,0 +1,138 @@
+# Desarrollo local completo: http://localhost:8080
+# Los puertos publicados solo escuchan en 127.0.0.1 y evitan chocar con servicios locales.
+name: floorhub
+
+x-backend-env: &backend-env
+  NODE_ENV: development
+  LOG_LEVEL: ${LOG_LEVEL:-info}
+  PORT: "3000"
+  DATABASE_URL: postgres://floorhub_app:floorhub_app_dev@postgres:5432/floorhub
+  REDIS_URL: redis://redis:6379/0
+  JWT_SECRET: ${JWT_SECRET:-solo-desarrollo-local-no-usar-en-produccion}
+
+services:
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: floorhub_owner
+      POSTGRES_PASSWORD: floorhub_owner_dev
+      POSTGRES_DB: floorhub
+    ports:
+      - "127.0.0.1:5433:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U floorhub_owner -d floorhub"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  redis:
+    image: redis:8-alpine
+    # noeviction: BullMQ no tolera que Redis borre claves. Sin persistencia: se reconstruye desde PostgreSQL.
+    command: ["redis-server", "--maxmemory", "128mb", "--maxmemory-policy", "noeviction", "--save", "", "--appendonly", "no"]
+    ports:
+      - "127.0.0.1:6380:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  migrate:
+    build:
+      context: .
+      dockerfile: deploy/docker/Dockerfile.node
+      args:
+        WORKSPACE: db
+    image: floorhub/migrate:local
+    command: ["node", "src/cli.js", "all"]
+    environment:
+      MIGRATION_DATABASE_URL: postgres://floorhub_owner:floorhub_owner_dev@postgres:5432/floorhub
+      DATABASE_URL: postgres://floorhub_app:floorhub_app_dev@postgres:5432/floorhub
+      SEED_PASSWORD: ${SEED_PASSWORD:-Demo-FloorHub-2026}
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  api:
+    build:
+      context: .
+      dockerfile: deploy/docker/Dockerfile.node
+      args:
+        WORKSPACE: apps/api
+    image: floorhub/api:local
+    environment: *backend-env
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000/health').then((r)=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+
+  gateway:
+    build:
+      context: .
+      dockerfile: deploy/docker/Dockerfile.node
+      args:
+        WORKSPACE: apps/gateway
+    image: floorhub/gateway:local
+    environment: *backend-env
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000/health').then((r)=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+
+  worker:
+    build:
+      context: .
+      dockerfile: deploy/docker/Dockerfile.node
+      args:
+        WORKSPACE: apps/worker
+    image: floorhub/worker:local
+    environment: *backend-env
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000/health').then((r)=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+
+  nginx:
+    build:
+      context: .
+      dockerfile: deploy/docker/Dockerfile.nginx
+    image: floorhub/nginx:local
+    ports:
+      - "127.0.0.1:8080:8080"
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:8080/health"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    # Nginx resuelve sus upstreams solo al arrancar. restart: true lo reinicia si Compose
+    # recrea alguno de ellos, porque el contenedor nuevo tendría otra IP.
+    depends_on:
+      api:
+        condition: service_healthy
+        restart: true
+      gateway:
+        condition: service_healthy
+        restart: true
+
+volumes:
+  postgres-data:

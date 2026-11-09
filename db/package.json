@@ -1,0 +1,19 @@
+{
+  "name": "@floorhub/db",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./migrate": "./src/migrate.js"
+  },
+  "scripts": {
+    "migrate": "node src/cli.js migrate",
+    "seed": "node src/cli.js seed",
+    "start": "node src/cli.js all"
+  },
+  "dependencies": {
+    "bcrypt": "^6.0.0",
+    "node-pg-migrate": "^9.0.0",
+    "pg": "^8.23.1"
+  }
+}

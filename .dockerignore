@@ -1,0 +1,10 @@
+**/node_modules
+**/dist
+.git
+.github
+.env
+deploy/terraform
+deploy/k8s
+docs
+*.md
+**/test

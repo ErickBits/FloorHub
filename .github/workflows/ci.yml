@@ -1,0 +1,60 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: floorhub_owner
+          POSTGRES_PASSWORD: floorhub_owner_dev
+          POSTGRES_DB: floorhub
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U floorhub_owner -d floorhub"
+          --health-interval 5s --health-timeout 3s --health-retries 20
+      redis:
+        image: redis:8-alpine
+        ports: ["6379:6379"]
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s --health-timeout 3s --health-retries 20
+    env:
+      TEST_PG_HOST: 127.0.0.1:5432
+      TEST_REDIS_URL: redis://127.0.0.1:6379/1
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 26
+          cache: npm
+      - run: npm ci
+      - run: npm run lint
+      - run: npm test
+      - run: npm run build:web
+
+  infrastructure:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: hashicorp/setup-terraform@v4
+      - run: terraform fmt -check -recursive deploy/terraform
+      - name: terraform validate
+        run: |
+          for stack in bootstrap demo; do
+            terraform -chdir="deploy/terraform/$stack" init -backend=false -input=false
+            terraform -chdir="deploy/terraform/$stack" validate
+          done
+      - name: Renderizar Kustomize
+        run: |
+          kubectl kustomize deploy/k8s/overlays/dev > /dev/null
+          kubectl kustomize deploy/k8s/overlays/prod > /dev/null

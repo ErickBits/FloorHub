@@ -1,0 +1,73 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: worker
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: worker
+  template:
+    metadata:
+      labels:
+        app: worker
+    spec:
+      automountServiceAccountToken: false
+      terminationGracePeriodSeconds: 30
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        seccompProfile:
+          type: RuntimeDefault
+      topologySpreadConstraints:
+        # Reparte las réplicas entre nodos: perder uno no debe tumbar el servicio.
+        - maxSkew: 1
+          topologyKey: kubernetes.io/hostname
+          whenUnsatisfiable: ScheduleAnyway
+          labelSelector:
+            matchLabels:
+              app: worker
+      containers:
+        - name: worker
+          image: floorhub-worker
+          ports:
+            - containerPort: 3000
+          envFrom:
+            - configMapRef:
+                name: floorhub-config
+          env:
+            - name: DB_POOL_MAX
+              value: "11"
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: floorhub-secrets
+                  key: DATABASE_URL
+            - name: JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: floorhub-secrets
+                  key: JWT_SECRET
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
+          resources:
+            requests: { cpu: 50m, memory: 128Mi }
+            limits: { cpu: 300m, memory: 256Mi }
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 3000
+            periodSeconds: 5
+            timeoutSeconds: 3
+          livenessProbe:
+            # No depende de PostgreSQL ni de Redis: si fallan, reiniciar este pod no ayudaría.
+            httpGet:
+              path: /livez
+              port: 3000
+            initialDelaySeconds: 15
+            periodSeconds: 10
+            timeoutSeconds: 3
