@@ -17,22 +17,54 @@ make up
 
 Abre <http://localhost:8080>. La contraseña de todos los usuarios locales es `Demo-FloorHub-2026`.
 
-| Rol | Usuarios |
-|---|---|
-| Administrador | `admin@floorhub.test` |
-| Supervisor | `supervisor1@floorhub.test` a `supervisor3@floorhub.test` |
-| Agente | `agente1@floorhub.test` a `agente9@floorhub.test` |
+| Rol | Nombre | Correo | Equipo |
+|---|---|---|---|
+| Administrador | Andrés Felipe Morales | `andres.morales@floorhub.com` | — |
+| Supervisor | Laura Valentina Gómez | `laura.gomez@floorhub.com` | Retención |
+| Supervisor | Julián Andrés Herrera | `julian.herrera@floorhub.com` | Soporte técnico |
+| Supervisor | Paola Andrea Castaño | `paola.castano@floorhub.com` | Tarjetas |
+| Agente | Santiago Ramírez | `santiago.ramirez@floorhub.com` | Retención |
+| Agente | Daniela Ospina | `daniela.ospina@floorhub.com` | Retención |
+| Agente | Camilo Rincón | `camilo.rincon@floorhub.com` | Retención |
+| Agente | Valentina Muñoz | `valentina.munoz@floorhub.com` | Soporte técnico |
+| Agente | Sebastián Cárdenas | `sebastian.cardenas@floorhub.com` | Soporte técnico |
+| Agente | Mariana López | `mariana.lopez@floorhub.com` | Soporte técnico |
+| Agente | Felipe Arango | `felipe.arango@floorhub.com` | Tarjetas |
+| Agente | Natalia Quintero | `natalia.quintero@floorhub.com` | Tarjetas |
+| Agente | Juan David Mejía | `juan.mejia@floorhub.com` | Tarjetas |
 
-Cada ventana conserva su propia sesión, así que puedes abrir varias con usuarios distintos en el mismo navegador. `supervisor1` atiende a `agente1`, `agente2` y `agente3`.
+Retención y Soporte técnico pertenecen a la campaña *Telecomunicaciones Andina*; Tarjetas, a *Banco del Valle*. Cada ventana conserva su propia sesión, así que puedes abrir varias con usuarios distintos en el mismo navegador.
+
+> Si ya tenías datos de una versión anterior (usuarios `@floorhub.test`), ejecuta `make reset && make up` para empezar con los usuarios nuevos.
 
 ### Demostración de 3 minutos
 
-1. Abre tres ventanas: `supervisor1`, `agente1` y `agente2`. El supervisor los ve conectados en **Presencia**.
-2. Como supervisor, publica un comunicado **crítico** para el equipo *Retención*, con recordatorio cada 1 minuto. Llega al instante a los agentes.
-3. Abre ese comunicado en la lista del supervisor. Confirma como `agente1` y mira cómo sube el porcentaje.
-4. Espera un minuto: `agente2` recibe un recordatorio y `agente1` no.
-5. Como `agente2`, levanta la mano. La solicitud aparece en la cola del supervisor.
-6. Como supervisor, tómala y resuélvela. El agente lo ve en vivo, con sus tiempos de espera y atención.
+1. Abre tres ventanas: Laura Gómez (supervisora), Santiago Ramírez y Daniela Ospina (agentes). Laura los ve conectados en **Presencia**.
+2. Como Laura, entra a **Nuevo comunicado** y publica uno **crítico** para el equipo *Retención*, con recordatorio cada 1 minuto. Llega al instante a los agentes.
+3. En **Comunicados publicados**, abre ese comunicado. Confirma como Santiago y mira cómo sube el porcentaje.
+4. Espera un minuto: Daniela recibe un recordatorio y Santiago no.
+5. Como Daniela, entra a **Levantar la mano** y pide ayuda. La solicitud aparece en la **Cola de ayuda** de Laura.
+6. Como Laura, tómala y resuélvela. Daniela lo ve en vivo, con sus tiempos de espera y atención.
+
+### Páginas por rol
+
+Cada función tiene su propia página en el menú lateral, y los selectores de campañas, equipos, supervisores y destinatarios tienen buscador.
+
+| Rol | Páginas |
+|---|---|
+| Administrador | Listado de usuarios · Agregar usuario · Editar usuario · Listado de campañas · Agregar campaña · Editar campaña · Listado de equipos · Agregar equipo · Editar equipo (supervisores incluidos) |
+| Supervisor | Cola de ayuda · Presencia · Nuevo comunicado · Comunicados publicados |
+| Agente | Comunicados · Levantar la mano |
+
+## Documentación
+
+| Entregable | Ubicación |
+|---|---|
+| Diagramas entidad-relación, relacional y de flujo | [`docs/diagramas`](docs/diagramas) |
+| Branding: logo, colores y guía de marca | [`docs/branding`](docs/branding) |
+| Manual de usuario con requerimientos funcionales y no funcionales | [`docs/manual`](docs/manual) |
+| Presentación (LibreOffice Impress) | [`docs/presentacion`](docs/presentacion) |
+| Diseño técnico y fases | [`docs/01-diseno.md`](docs/01-diseno.md), [`docs/02-fases.md`](docs/02-fases.md) |
 
 ## Arquitectura
 
@@ -213,3 +245,4 @@ Las alertas de presupuesto **avisan pero no detienen el gasto**. La alerta del 2
 | RDS Single-AZ | Costo | Multi-AZ |
 | Nodos en subred pública | Evita el NAT Gateway | Subredes privadas con NAT |
 | El administrador de la base podría desactivar los triggers | Fuera del alcance del MVP | Firmas o cadena de hashes |
+# FloorHubisores-atienden-en-tiempo-real.
