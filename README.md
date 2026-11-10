@@ -58,13 +58,18 @@ Cada función tiene su propia página en el menú lateral, y los selectores de c
 
 ## Documentación
 
+El índice completo, con 18 documentos y una guía de lectura según quién eres, está en [`docs/README.md`](docs/README.md).
+
 | Entregable | Ubicación |
 |---|---|
-| Diagramas entidad-relación, relacional y de flujo | [`docs/diagramas`](docs/diagramas) |
-| Branding: logo, colores y guía de marca | [`docs/branding`](docs/branding) |
-| Manual de usuario con requerimientos funcionales y no funcionales | [`docs/manual`](docs/manual) |
-| Presentación (LibreOffice Impress) | [`docs/presentacion`](docs/presentacion) |
-| Diseño técnico y fases | [`docs/01-diseno.md`](docs/01-diseno.md), [`docs/02-fases.md`](docs/02-fases.md) |
+| Especificación de requerimientos (IEEE 830) y matriz en Excel | [`docs/01-especificacion-requerimientos-ieee830.md`](docs/01-especificacion-requerimientos-ieee830.md), [`docs/requerimientos`](docs/requerimientos) |
+| Arquitectura (C4), base de datos, casos de uso, clases y secuencias | [`docs/02`](docs/02-arquitectura-software-c4-y-backend.md) a [`docs/12`](docs/12-diagramas-de-secuencia.md) y [`docs/diagramas`](docs/diagramas) |
+| Contrato de la API (OpenAPI 3.0) | [`docs/api/openapi_floorhub.yaml`](docs/api/openapi_floorhub.yaml) |
+| Manual de usuario (Markdown, ODT y PDF) | [`docs/13-manual-de-usuario.md`](docs/13-manual-de-usuario.md), [`docs/manual`](docs/manual) |
+| Plan y reporte de pruebas (ISO 25010) | [`docs/14-plan-y-reporte-de-pruebas-iso25010.md`](docs/14-plan-y-reporte-de-pruebas-iso25010.md) |
+| Guion de la sustentación | [`docs/16-guion-demostracion-sustentacion.md`](docs/16-guion-demostracion-sustentacion.md) |
+| Diseño técnico, costos y guía por fases | [`docs/17-diseno-tecnico-y-costos.md`](docs/17-diseno-tecnico-y-costos.md), [`docs/18-guia-por-fases.md`](docs/18-guia-por-fases.md) |
+| Branding y presentación (LibreOffice Impress) | [`docs/branding`](docs/branding), [`docs/presentacion`](docs/presentacion) |
 
 ## Arquitectura
 
@@ -105,7 +110,7 @@ flowchart TB
 | Nodos bajo demanda, no Spot | Spot ahorra unos 1,57 USD, pero AWS podría retirar un nodo durante la presentación. |
 | GHCR en lugar de ECR | CI construye imágenes cuando el stack de AWS no existe. Es gratis para paquetes públicos. |
 
-El diseño completo, con el modelo de datos, los índices y el dimensionamiento, está en [docs/01-diseno.md](docs/01-diseno.md). La explicación fase por fase está en [docs/02-fases.md](docs/02-fases.md).
+El diseño completo, con el modelo de datos, los índices y el dimensionamiento, está en [docs/17-diseno-tecnico-y-costos.md](docs/17-diseno-tecnico-y-costos.md). La explicación fase por fase está en [docs/18-guia-por-fases.md](docs/18-guia-por-fases.md).
 
 ## Modelo de datos
 
@@ -245,4 +250,3 @@ Las alertas de presupuesto **avisan pero no detienen el gasto**. La alerta del 2
 | RDS Single-AZ | Costo | Multi-AZ |
 | Nodos en subred pública | Evita el NAT Gateway | Subredes privadas con NAT |
 | El administrador de la base podría desactivar los triggers | Fuera del alcance del MVP | Firmas o cadena de hashes |
-# FloorHubisores-atienden-en-tiempo-real.

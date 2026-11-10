@@ -1,0 +1,16 @@
+flowchart TB
+    AG["👤 Agente<br/><small>Atiende clientes en el piso</small>"]
+    SUP["👤 Supervisor<br/><small>Coordina uno o varios equipos</small>"]
+    ADM["👤 Administrador<br/><small>Gestiona usuarios, campañas y equipos</small>"]
+    FH["<b>FloorHub</b><br/><small>Plataforma interna del piso de operaciones:<br/>comunicados con confirmación y cola de ayuda</small>"]
+    GH["GitHub<br/><small>Código, CI/CD e imágenes (GHCR)</small>"]
+    AWS["Amazon Web Services<br/><small>EKS, RDS, NLB y Budgets</small>"]
+    AG -->|"Lee y confirma comunicados,<br/>levanta la mano"| FH
+    SUP -->|"Publica comunicados, ve presencia,<br/>toma y resuelve solicitudes"| FH
+    ADM -->|"Administra usuarios,<br/>campañas y equipos"| FH
+    GH -.->|"Construye y despliega"| FH
+    FH -.->|"Se ejecuta en"| AWS
+    classDef sistema fill:#3B6FDD,stroke:#2B56BD,color:#FFFFFF
+    classDef externo fill:#F3F5F8,stroke:#8C95A4,color:#1D222B
+    class FH sistema
+    class GH,AWS externo

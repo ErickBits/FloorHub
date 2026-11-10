@@ -1,0 +1,29 @@
+sequenceDiagram
+    autonumber
+    actor U as Usuario
+    participant W as SPA React
+    participant N as nginx
+    participant A as api /auth
+    participant R as Redis
+    participant P as PostgreSQL
+    U->>W: Escribe correo y contraseña
+    W->>N: POST /api/auth/login
+    N->>A: proxy
+    A->>R: INCR rl:login:{ip}:{correo}
+    alt más de 10 intentos en el minuto
+        A-->>W: 429 rate_limited (Retry-After: 60)
+    else dentro del límite
+        A->>P: SELECT id, password_hash, is_active WHERE lower(email)=$1
+        A->>A: bcrypt.compare (con hash falso si no existe)
+        alt credenciales inválidas o usuario inactivo
+            A-->>W: 401 invalid_credentials
+        else correctas
+            A->>A: signToken(sub=userId, HS256, 8 h)
+            A-->>W: 200 { token }
+            W->>W: guarda token en sessionStorage
+            W->>A: GET /api/auth/me (Bearer)
+            A->>R: getOrSet cache:user-scope (60 s)
+            A-->>W: 200 { user: rol, equipos, campañas }
+            W->>W: muestra la vista del rol
+        end
+    end

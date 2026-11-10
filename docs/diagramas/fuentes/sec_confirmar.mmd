@@ -1,0 +1,27 @@
+sequenceDiagram
+    autonumber
+    actor AG as Agente
+    participant A as api
+    participant P as PostgreSQL
+    participant R as Redis
+    participant G as gateway
+    actor S as Supervisor
+    AG->>A: POST /api/announcements/{id}/ack
+    A->>P: BEGIN
+    A->>P: ¿es destinatario? (announcement_recipients)
+    alt no es destinatario
+        A-->>AG: 404 not_found
+    else
+        A->>P: INSERT announcement_acks ON CONFLICT DO NOTHING
+        alt ya había confirmado
+            A->>P: SELECT acknowledged_at original
+        else primera confirmación
+            A->>P: si todos confirmaron → next_reminder_at = NULL
+        end
+        A->>P: COMMIT
+        A->>R: invalida la caché del agente
+        A-->>AG: 200 { acknowledgedAt }
+        A->>R: emit announcement:acknowledged
+        R-->>G: Pub/Sub
+        G-->>S: el porcentaje sube en vivo
+    end

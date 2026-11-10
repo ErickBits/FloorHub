@@ -1,0 +1,33 @@
+sequenceDiagram
+    autonumber
+    actor S as Supervisor
+    participant A as api
+    participant P as PostgreSQL
+    participant R as Redis
+    participant G as gateway (×N)
+    participant Q as worker
+    actor AG as Agentes
+    S->>A: POST /api/announcements { título, cuerpo, prioridad, destinos }
+    A->>A: zod: al menos un destino, y si es crítico, intervalo
+    A->>P: BEGIN
+    A->>P: valida agentes directos activos
+    A->>A: assertTargetsAllowed (solo sus equipos y campañas)
+    A->>P: INSERT announcements (next_reminder_at si es crítico)
+    A->>P: INSERT announcement_targets
+    A->>P: INSERT announcement_recipients (foto fija de la audiencia)
+    alt audiencia vacía
+        A->>P: ROLLBACK
+        A-->>S: 422 empty_audience
+    else
+        A->>P: COMMIT
+        A-->>S: 201 { announcement, recipients_count }
+        par efectos después del commit
+            A->>R: invalida cache:active-announcements
+            A->>R: emit announcement:new → user:{id}
+            R-->>G: Pub/Sub
+            G-->>AG: announcement:new (en vivo)
+        and si es crítico
+            A->>R: encola reminder ronda 0 con retraso
+            R-->>Q: trabajo programado
+        end
+    end

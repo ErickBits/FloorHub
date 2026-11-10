@@ -1,0 +1,22 @@
+flowchart TB
+    U["Navegador<br/><small>SPA React · sessionStorage</small>"]
+    subgraph FH["FloorHub"]
+        NGX["nginx<br/><small>Sirve la SPA y hace de proxy<br/>CSP y cabeceras de seguridad</small>"]
+        API["api<br/><small>Node.js · Express · zod<br/>REST /api</small>"]
+        GW["gateway<br/><small>Node.js · Socket.IO<br/>WebSocket /ws, salas y presencia</small>"]
+        WK["worker<br/><small>Node.js · BullMQ<br/>recordatorios, reconciliador, resumen</small>"]
+        JOB["migrate<br/><small>node-pg-migrate y seed</small>"]
+        RD[("Redis 8<br/><small>caché, Pub/Sub, colas,<br/>rate limit y presencia</small>")]
+        PG[("PostgreSQL 17<br/><small>fuente de verdad</small>")]
+    end
+    U -->|"HTTP"| NGX
+    U <-->|"WebSocket"| NGX
+    NGX -->|"/api"| API
+    NGX -->|"/ws"| GW
+    API -->|"SQL"| PG
+    GW -->|"SQL"| PG
+    WK -->|"SQL"| PG
+    JOB -->|"DDL y datos demo"| PG
+    API -->|"caché, emisor, encolado"| RD
+    GW <-->|"adaptador Pub/Sub"| RD
+    WK <-->|"colas y emisor"| RD

@@ -1,0 +1,28 @@
+flowchart TB
+    INT(["Internet"]) -->|"HTTP :80"| NLB
+    subgraph AWS["AWS us-east-1"]
+        NLB["Network Load Balancer<br/><small>creado por el Service de Kubernetes</small>"]
+        subgraph VPC["VPC"]
+            subgraph PUB["Subredes públicas (2 zonas)"]
+                subgraph EKS["Amazon EKS 1.36 · 2 nodos t3.medium · namespace floorhub"]
+                    NGX["Deployment nginx ×2"]
+                    API["Deployment api ×2–3<br/><small>HPA al 70 % de CPU</small>"]
+                    GW["Deployment gateway ×2–3<br/><small>HPA al 70 % de CPU</small>"]
+                    WK["Deployment worker ×1"]
+                    RD[("redis ×1<br/><small>emptyDir, noeviction</small>")]
+                    JOB["Job migrate"]
+                end
+            end
+            subgraph PRIV["Subredes privadas"]
+                PG[("RDS PostgreSQL 17<br/>db.t4g.micro · TLS")]
+            end
+        end
+        S3[("S3: estado de Terraform")]
+        BUD["AWS Budgets<br/><small>alertas 25/50/80 % de 30 USD</small>"]
+    end
+    GHCR["GitHub Container Registry"] -.->|"imágenes"| EKS
+    GHA["GitHub Actions (OIDC)"] -.->|"terraform y kubectl"| AWS
+    NLB --> NGX
+    NGX --> API & GW
+    API & GW & WK & JOB -->|"TLS"| PG
+    API & GW & WK --> RD

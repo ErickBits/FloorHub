@@ -1,0 +1,13 @@
+flowchart LR
+    ADM(["👤 Administrador"])
+    subgraph FH["FloorHub · Administración"]
+        CU01(["CU-01 Iniciar sesión"])
+        CU15(["CU-15 Gestionar usuarios"])
+        CU16(["CU-16 Activar o desactivar usuario"])
+        CU17(["CU-17 Gestionar campañas"])
+        CU18(["CU-18 Gestionar equipos"])
+        CU19(["CU-19 Asignar supervisores"])
+    end
+    ADM --- CU01 & CU15 & CU17 & CU18
+    CU15 -.->|"«extend»"| CU16
+    CU18 -.->|"«extend»"| CU19

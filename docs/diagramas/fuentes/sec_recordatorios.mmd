@@ -1,0 +1,27 @@
+sequenceDiagram
+    autonumber
+    participant Q as BullMQ (Redis)
+    participant W as worker
+    participant P as PostgreSQL
+    participant G as gateway
+    actor AG as Agente sin confirmar
+    Q->>W: send-reminder { announcementId, round }
+    W->>P: BEGIN y SELECT … WHERE reminders_sent = round FOR UPDATE
+    alt ronda ya procesada o no vencida
+        W->>P: ROLLBACK (no notifica dos veces)
+    else
+        W->>P: pendientes = destinatarios sin ack
+        alt nadie pendiente o comunicado vencido
+            W->>P: next_reminder_at = NULL
+        else
+            W->>P: reminder_count + 1 a pendientes
+            W->>P: reminders_sent + 1 y próxima fecha si quedan rondas (máx. 5)
+            W->>P: COMMIT
+            W->>Q: notifications (una por agente)
+            Q->>W: notify
+            W->>G: emit announcement:reminder → user:{id}
+            G-->>AG: aviso «Recordatorio: confirma …»
+            W->>Q: encola la ronda siguiente con retraso
+        end
+    end
+    Note over W,P: Cada minuto, reconcile-reminders reencola desde PostgreSQL<br/>los recordatorios vencidos (jobId determinista, sin duplicados)

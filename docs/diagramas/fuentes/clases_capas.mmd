@@ -1,0 +1,82 @@
+classDiagram
+    direction TB
+    class AnnouncementRoutes {
+        <<router /api/announcements>>
+        +POST /()
+        +GET /()
+        +GET /:id/status()
+        +POST /:id/ack()
+    }
+    class HelpRequestRoutes {
+        <<router /api/help-requests>>
+        +POST /()
+        +GET /()
+        +POST /:id/claim()
+        +POST /:id/resolve()
+    }
+    class AnnouncementsService {
+        <<service>>
+        +publishAnnouncement(ctx, user, input)
+        +listForAgent(ctx, user)
+        +listForSupervisor(ctx, user)
+        +announcementStatus(ctx, user, id)
+        +acknowledgeAnnouncement(ctx, user, id)
+    }
+    class HelpRequestsService {
+        <<service>>
+        +PRIORITY_BY_TYPE
+        +createRequest(ctx, user, input)
+        +listRequests(ctx, user)
+        +claimRequest(ctx, user, id)
+        +resolveRequest(ctx, user, id)
+    }
+    class Context {
+        <<shared>>
+        +config
+        +pool
+        +redis
+        +cache
+        +emitter
+        +queues
+        +log
+        +background(promise, msg)
+    }
+    class Scope {
+        <<shared/scope.js>>
+        +signToken(config, userId)
+        +authenticateToken(ctx, token)
+        +getUserScope(ctx, userId)
+    }
+    class Cache {
+        <<shared/cache.js>>
+        +getOrSet(key, ttl, loader)
+        +invalidate(keys)
+    }
+    class Queues {
+        <<shared/queues.js>>
+        +enqueueReminder(job)
+        +enqueueNotifications(items)
+    }
+    class Jobs {
+        <<worker/jobs.js>>
+        +sendReminder(ctx, job)
+        +reconcileReminders(ctx)
+        +sweepPresence(ctx)
+        +dailySummary(ctx)
+        +deliverNotification(ctx, job)
+    }
+    class Gateway {
+        <<gateway/server.js>>
+        +createGateway(ctx)
+        -roomsFor(user)
+    }
+    AnnouncementRoutes --> AnnouncementsService
+    HelpRequestRoutes --> HelpRequestsService
+    AnnouncementsService --> Context
+    HelpRequestsService --> Context
+    Context --> Cache
+    Context --> Queues
+    Gateway --> Scope
+    AnnouncementRoutes ..> Scope : authenticate
+    Jobs --> Context
+    Queues ..> Jobs : BullMQ

@@ -1,0 +1,36 @@
+flowchart LR
+    REQ(["Petición HTTP"]) --> APP
+    subgraph API["Contenedor api (Express)"]
+        APP["app.js<br/><small>JSON 64 kB, /livez, /health</small>"]
+        AUTH["middleware/auth<br/><small>authenticate · requireRole</small>"]
+        RL["middleware/rateLimit<br/><small>ventana fija por minuto</small>"]
+        subgraph R["routes/"]
+            RA["auth"]
+            RAD["admin"]
+            RAN["announcements"]
+            RH["helpRequests"]
+            RD2["directory"]
+            RP["presence"]
+        end
+        subgraph S["services/"]
+            SAN["announcements<br/><small>publicar, listar, estado, confirmar</small>"]
+            SH["helpRequests<br/><small>crear, listar, tomar, resolver</small>"]
+        end
+        ERR["middleware/errors<br/><small>zod, AppError y errores de PostgreSQL</small>"]
+    end
+    subgraph SH2["@floorhub/shared"]
+        SC["scope.js<br/><small>JWT y alcance del usuario</small>"]
+        CA["cache.js"]
+        QU["queues.js"]
+        RT["realtime.js<br/><small>EVENTS, rooms, presencia</small>"]
+        DB["db.js<br/><small>pool y withTransaction</small>"]
+    end
+    APP --> AUTH --> R
+    RA & RH --> RL
+    RAN --> SAN
+    RH --> SH
+    AUTH --> SC
+    SAN --> DB & CA & QU & RT
+    SH --> DB & RT
+    RAD --> DB & CA
+    R -.->|"excepciones"| ERR

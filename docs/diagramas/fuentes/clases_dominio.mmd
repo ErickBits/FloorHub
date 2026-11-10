@@ -1,0 +1,83 @@
+classDiagram
+    direction LR
+    class Campaign {
+        +uuid id
+        +text name
+        +boolean isActive
+        +timestamptz createdAt
+    }
+    class Team {
+        +uuid id
+        +uuid campaignId
+        +text name
+        +boolean isActive
+    }
+    class User {
+        +uuid id
+        +text email
+        +text passwordHash
+        +text fullName
+        +UserRole role
+        +uuid teamId
+        +boolean isActive
+    }
+    class UserRole {
+        <<enumeration>>
+        agent
+        supervisor
+        admin
+    }
+    class Announcement {
+        +uuid id
+        +uuid authorId
+        +text title
+        +text body
+        +Priority priority
+        +int reminderIntervalMinutes
+        +int remindersSent
+        +timestamptz nextReminderAt
+        +timestamptz expiresAt
+        +timestamptz publishedAt
+    }
+    class AnnouncementTarget {
+        +uuid campaignId
+        +uuid teamId
+        +uuid userId
+    }
+    class AnnouncementRecipient {
+        +int reminderCount
+        +timestamptz lastRemindedAt
+    }
+    class AnnouncementAck {
+        +timestamptz acknowledgedAt
+    }
+    class HelpRequest {
+        +uuid id
+        +HelpType type
+        +smallint priority
+        +text summary
+        +HelpStatus status
+        +timestamptz createdAt
+        +timestamptz claimedAt
+        +timestamptz resolvedAt
+        +waitSeconds() int
+        +resolutionSeconds() int
+    }
+    class HelpStatus {
+        <<enumeration>>
+        pending
+        in_progress
+        resolved
+    }
+    Campaign "1" --> "0..*" Team : agrupa
+    Team "1" --> "0..*" User : agentes
+    Team "0..*" -- "0..*" User : supervisores
+    User "1" --> "0..*" Announcement : publica
+    Announcement "1" *-- "1..*" AnnouncementTarget : destinos
+    Announcement "1" *-- "1..*" AnnouncementRecipient : foto de audiencia
+    AnnouncementRecipient "1" --> "0..1" AnnouncementAck : confirma
+    User "1" --> "0..*" HelpRequest : crea
+    User "0..1" --> "0..*" HelpRequest : toma
+    Team "1" --> "0..*" HelpRequest : atiende
+    User ..> UserRole
+    HelpRequest ..> HelpStatus

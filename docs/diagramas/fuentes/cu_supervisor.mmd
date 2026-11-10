@@ -1,0 +1,15 @@
+flowchart LR
+    SUP(["👤 Supervisor"])
+    subgraph FH["FloorHub · Supervisor"]
+        CU01(["CU-01 Iniciar sesión"])
+        CU02(["CU-02 Cerrar sesión"])
+        CU07(["CU-07 Publicar comunicado"])
+        CU08(["CU-08 Consultar estado de confirmación"])
+        CU09(["CU-09 Ver presencia del equipo"])
+        CU10(["CU-10 Gestionar cola de ayuda"])
+        CU11(["CU-11 Tomar solicitud"])
+        CU12(["CU-12 Resolver solicitud"])
+    end
+    SUP --- CU01 & CU02 & CU07 & CU08 & CU09 & CU10
+    CU10 -.->|"«extend»"| CU11
+    CU11 -.->|"«extend»"| CU12

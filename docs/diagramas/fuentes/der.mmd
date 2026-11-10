@@ -1,0 +1,15 @@
+erDiagram
+    campaigns ||--o{ teams : agrupa
+    teams ||--o{ users : "tiene agentes"
+    teams ||--o{ team_supervisors : "lo supervisan"
+    users ||--o{ team_supervisors : supervisa
+    users ||--o{ announcements : publica
+    announcements ||--|{ announcement_targets : "se dirige a"
+    campaigns ||--o{ announcement_targets : "destino"
+    teams ||--o{ announcement_targets : "destino"
+    users ||--o{ announcement_targets : "destino"
+    announcements ||--|{ announcement_recipients : "se entrega a"
+    users ||--o{ announcement_recipients : recibe
+    announcement_recipients ||--o| announcement_acks : "se confirma con"
+    teams ||--o{ help_requests : atiende
+    users ||--o{ help_requests : "crea / toma"

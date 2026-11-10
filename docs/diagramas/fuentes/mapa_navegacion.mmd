@@ -1,0 +1,22 @@
+flowchart TB
+    START(["Abrir FloorHub"]) --> LOGIN["Inicio de sesión<br/><small>se muestra si no hay token en sessionStorage</small>"]
+    LOGIN -->|"rol = agent"| AGV
+    LOGIN -->|"rol = supervisor"| SUV
+    LOGIN -->|"rol = admin"| ADV
+    subgraph AGV["Vista del agente"]
+        A1["Comunicados<br/><small>#/comunicados</small>"]
+        A2["Levantar la mano<br/><small>#/ayuda</small>"]
+    end
+    subgraph SUV["Vista del supervisor"]
+        S1["Cola de ayuda<br/><small>#/cola</small>"]
+        S2["Presencia<br/><small>#/presencia</small>"]
+        S3["Nuevo comunicado<br/><small>#/comunicados/nuevo</small>"]
+        S4["Comunicados publicados<br/><small>#/comunicados</small>"]
+        S4 --> S5["Detalle de confirmaciones<br/><small>se despliega en la misma página</small>"]
+    end
+    subgraph ADV["Vista del administrador"]
+        D1["Listado de usuarios<br/><small>#/usuarios</small>"] --> D2["Agregar usuario<br/><small>#/usuarios/nuevo</small>"] & D3["Editar usuario<br/><small>#/usuarios/{id}</small>"]
+        D4["Listado de campañas<br/><small>#/campanas</small>"] --> D5["Agregar campaña<br/><small>#/campanas/nueva</small>"] & D6["Editar campaña<br/><small>#/campanas/{id}</small>"]
+        D7["Listado de equipos<br/><small>#/equipos</small>"] --> D8["Agregar equipo<br/><small>#/equipos/nuevo</small>"] & D9["Editar equipo y supervisores<br/><small>#/equipos/{id}</small>"]
+    end
+    AGV & SUV & ADV -->|"Salir"| LOGIN

@@ -1,0 +1,16 @@
+flowchart LR
+    AG(["👤 Agente"])
+    SIS(["⚙️ Sistema (worker)"])
+    subgraph FH["FloorHub · Agente"]
+        CU01(["CU-01 Iniciar sesión"])
+        CU02(["CU-02 Cerrar sesión"])
+        CU03(["CU-03 Consultar comunicados"])
+        CU04(["CU-04 Confirmar lectura"])
+        CU05(["CU-05 Levantar la mano"])
+        CU06(["CU-06 Seguir mis solicitudes"])
+        CU13(["CU-13 Enviar recordatorios"])
+        CU14(["CU-14 Generar resumen diario"])
+    end
+    AG --- CU01 & CU02 & CU03 & CU05 & CU06
+    CU03 -.->|"«extend»"| CU04
+    SIS --- CU13 & CU14

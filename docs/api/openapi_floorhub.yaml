@@ -1,0 +1,896 @@
+openapi: 3.0.3
+info:
+  title: API REST de FloorHub
+  description: |
+    Contrato de la API REST de FloorHub, la plataforma interna para el piso de operaciones de un BPO:
+    comunicados con confirmación de lectura auditable y cola de ayuda con un único responsable.
+
+    - Todas las rutas, salvo `/api/auth/login`, `/health` y `/livez`, exigen `Authorization: Bearer <token>`.
+    - Los errores siempre tienen la forma `{ "error": { "code", "message", "details?" } }`.
+    - Los eventos en tiempo real viajan por Socket.IO en la ruta `/ws` (ver el documento 02).
+  version: 1.0.0
+  contact:
+    name: Erick Santiago Tamayo Garcia
+
+servers:
+  - url: http://localhost:8080
+    description: Desarrollo local (Nginx de Docker Compose)
+  - url: http://localhost:8081
+    description: Kubernetes local (minikube con make k8s-url)
+
+tags:
+  - name: Salud
+  - name: Autenticación
+  - name: Administración
+  - name: Comunicados
+  - name: Ayuda
+  - name: Supervisión
+
+security:
+  - bearerAuth: []
+
+paths:
+  /livez:
+    get:
+      tags: [Salud]
+      summary: El proceso responde (liveness)
+      description: No revisa dependencias. Solo accesible dentro de la red de contenedores.
+      security: []
+      responses:
+        '200':
+          description: Vivo
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status: { type: string, example: ok }
+
+  /health:
+    get:
+      tags: [Salud]
+      summary: Estado de las dependencias (readiness)
+      security: []
+      responses:
+        '200':
+          description: PostgreSQL disponible. `degraded` si Redis falla.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Health' }
+        '503':
+          description: PostgreSQL no disponible
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Health' }
+
+  # ===================================================================
+  # AUTENTICACIÓN
+  # ===================================================================
+  /api/auth/login:
+    post:
+      tags: [Autenticación]
+      summary: Inicia sesión
+      description: |
+        Máximo 10 intentos por minuto por IP y correo. El mensaje de error es el mismo
+        si el correo no existe, la contraseña es incorrecta o el usuario está inactivo.
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password]
+              properties:
+                email: { type: string, format: email, maxLength: 254, example: laura.gomez@floorhub.com }
+                password: { type: string, minLength: 1, maxLength: 72, example: Demo-FloorHub-2026 }
+      responses:
+        '200':
+          description: Token JWT HS256 válido por 8 horas
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  token: { type: string }
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '401':
+          description: Correo o contraseña incorrectos
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+              example: { error: { code: invalid_credentials, message: Correo o contraseña incorrectos } }
+        '429': { $ref: '#/components/responses/RateLimited' }
+
+  /api/auth/me:
+    get:
+      tags: [Autenticación]
+      summary: Usuario de la sesión y su alcance
+      responses:
+        '200':
+          description: Datos del usuario
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  user: { $ref: '#/components/schemas/SessionUser' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+  # ===================================================================
+  # ADMINISTRACIÓN (rol admin)
+  # ===================================================================
+  /api/admin/campaigns:
+    get:
+      tags: [Administración]
+      summary: Lista las campañas
+      responses:
+        '200':
+          description: Campañas ordenadas por nombre
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  campaigns: { type: array, items: { $ref: '#/components/schemas/Campaign' } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+    post:
+      tags: [Administración]
+      summary: Crea una campaña
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name]
+              properties:
+                name: { type: string, minLength: 1, maxLength: 120 }
+      responses:
+        '201':
+          description: Campaña creada
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  campaign: { $ref: '#/components/schemas/Campaign' }
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '409': { $ref: '#/components/responses/Conflict' }
+
+  /api/admin/campaigns/{id}:
+    parameters:
+      - $ref: '#/components/parameters/Id'
+    patch:
+      tags: [Administración]
+      summary: Renombra, activa o desactiva una campaña
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name: { type: string, minLength: 1, maxLength: 120 }
+                isActive: { type: boolean }
+      responses:
+        '200':
+          description: Campaña actualizada
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  campaign: { $ref: '#/components/schemas/Campaign' }
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /api/admin/teams:
+    get:
+      tags: [Administración]
+      summary: Lista los equipos con su campaña y supervisores
+      description: Respuesta en caché durante 300 s; se invalida con cualquier cambio de equipos o campañas.
+      responses:
+        '200':
+          description: Equipos
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  teams: { type: array, items: { $ref: '#/components/schemas/TeamWithSupervisors' } }
+        '403': { $ref: '#/components/responses/Forbidden' }
+    post:
+      tags: [Administración]
+      summary: Crea un equipo dentro de una campaña
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [campaignId, name]
+              properties:
+                campaignId: { type: string, format: uuid }
+                name: { type: string, minLength: 1, maxLength: 120 }
+      responses:
+        '201':
+          description: Equipo creado
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  team: { $ref: '#/components/schemas/Team' }
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '422': { $ref: '#/components/responses/Unprocessable' }
+
+  /api/admin/teams/{id}:
+    parameters:
+      - $ref: '#/components/parameters/Id'
+    patch:
+      tags: [Administración]
+      summary: Renombra, activa o desactiva un equipo
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name: { type: string, minLength: 1, maxLength: 120 }
+                isActive: { type: boolean }
+      responses:
+        '200':
+          description: Equipo actualizado
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  team: { $ref: '#/components/schemas/Team' }
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /api/admin/teams/{id}/supervisors:
+    parameters:
+      - $ref: '#/components/parameters/Id'
+    put:
+      tags: [Administración]
+      summary: Reemplaza los supervisores de un equipo
+      description: |
+        Todos los ids deben ser usuarios con rol `supervisor`. Los supervisores afectados
+        se desconectan del WebSocket para reconectar con sus salas actualizadas.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [userIds]
+              properties:
+                userIds:
+                  type: array
+                  maxItems: 50
+                  items: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Supervisores asignados
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  teamId: { type: string, format: uuid }
+                  userIds: { type: array, items: { type: string, format: uuid } }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /api/admin/users:
+    get:
+      tags: [Administración]
+      summary: Lista los usuarios
+      responses:
+        '200':
+          description: Usuarios ordenados por rol y nombre
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  users: { type: array, items: { $ref: '#/components/schemas/UserListItem' } }
+        '403': { $ref: '#/components/responses/Forbidden' }
+    post:
+      tags: [Administración]
+      summary: Crea un usuario
+      description: Un agente necesita `teamId`; un supervisor o administrador no debe tenerlo.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password, fullName, role]
+              properties:
+                email: { type: string, format: email, maxLength: 254 }
+                password: { type: string, minLength: 8, maxLength: 72 }
+                fullName: { type: string, minLength: 1, maxLength: 120 }
+                role: { $ref: '#/components/schemas/Role' }
+                teamId: { type: string, format: uuid, nullable: true }
+      responses:
+        '201':
+          description: Usuario creado (sin el hash de la contraseña)
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  user: { $ref: '#/components/schemas/User' }
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '422': { $ref: '#/components/responses/Unprocessable' }
+
+  /api/admin/users/{id}:
+    parameters:
+      - $ref: '#/components/parameters/Id'
+    patch:
+      tags: [Administración]
+      summary: Edita, cambia la contraseña, activa o desactiva un usuario
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                fullName: { type: string, minLength: 1, maxLength: 120 }
+                role: { $ref: '#/components/schemas/Role' }
+                teamId: { type: string, format: uuid, nullable: true }
+                isActive: { type: boolean }
+                password: { type: string, minLength: 8, maxLength: 72 }
+      responses:
+        '200':
+          description: Usuario actualizado
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  user: { $ref: '#/components/schemas/User' }
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '422': { $ref: '#/components/responses/Unprocessable' }
+
+  # ===================================================================
+  # COMUNICADOS
+  # ===================================================================
+  /api/announcements:
+    post:
+      tags: [Comunicados]
+      summary: Publica un comunicado (supervisor)
+      description: |
+        Solo a equipos que supervisa, a campañas donde supervisa al menos un equipo o a agentes de sus equipos.
+        Un comunicado `critical` exige `reminderIntervalMinutes`. Emite `announcement:new` a los destinatarios.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/PublishAnnouncement' }
+      responses:
+        '201':
+          description: Comunicado publicado
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  announcement: { $ref: '#/components/schemas/PublishedAnnouncement' }
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '422':
+          description: Destinatario inválido (`invalid_target`) o audiencia vacía (`empty_audience`)
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+    get:
+      tags: [Comunicados]
+      summary: Bandeja del agente o comunicados del supervisor
+      description: |
+        Agente: hasta 100 comunicados vigentes donde es destinatario, sin confirmar primero (caché de 120 s).
+        Supervisor: hasta 50 comunicados propios o que alcanzan a sus equipos, con conteos.
+      responses:
+        '200':
+          description: Lista de comunicados
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  announcements:
+                    type: array
+                    items:
+                      oneOf:
+                        - $ref: '#/components/schemas/AgentAnnouncement'
+                        - $ref: '#/components/schemas/SupervisorAnnouncement'
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  /api/announcements/{id}/status:
+    parameters:
+      - $ref: '#/components/parameters/Id'
+    get:
+      tags: [Comunicados]
+      summary: Estado de confirmación (supervisor)
+      description: El autor ve a toda la audiencia; otros supervisores, solo a los agentes de sus equipos.
+      responses:
+        '200':
+          description: Porcentaje, confirmados y pendientes
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status: { $ref: '#/components/schemas/AnnouncementStatus' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /api/announcements/{id}/ack:
+    parameters:
+      - $ref: '#/components/parameters/Id'
+    post:
+      tags: [Comunicados]
+      summary: Confirma la lectura (agente)
+      description: Idempotente. Confirmar dos veces devuelve la fecha original. Emite `announcement:acknowledged`.
+      responses:
+        '200':
+          description: Confirmación registrada
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  acknowledgedAt: { type: string, format: date-time }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  # ===================================================================
+  # COLA DE AYUDA
+  # ===================================================================
+  /api/help-requests:
+    post:
+      tags: [Ayuda]
+      summary: Levanta la mano (agente)
+      description: |
+        La prioridad la asigna el servidor según el tipo (3, 2 o 1). Máximo una solicitud
+        pendiente o en atención por agente y 10 por minuto. Emite `help:created`.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [type, summary]
+              properties:
+                type: { $ref: '#/components/schemas/HelpType' }
+                summary: { type: string, minLength: 1, maxLength: 500 }
+      responses:
+        '201':
+          description: Solicitud creada
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  request: { $ref: '#/components/schemas/HelpRequest' }
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '409':
+          description: Ya tiene una solicitud activa (`active_request_exists`)
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+        '429': { $ref: '#/components/responses/RateLimited' }
+    get:
+      tags: [Ayuda]
+      summary: Solicitudes propias (agente) o cola de sus equipos (supervisor)
+      description: Las resueltas se limitan a las últimas 24 horas.
+      responses:
+        '200':
+          description: Solicitudes
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  requests: { type: array, items: { $ref: '#/components/schemas/HelpRequest' } }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  /api/help-requests/{id}/claim:
+    parameters:
+      - $ref: '#/components/parameters/Id'
+    post:
+      tags: [Ayuda]
+      summary: Toma una solicitud (supervisor)
+      description: Operación atómica. Si otro supervisor la tomó antes, responde 409. Emite `help:claimed`.
+      responses:
+        '200':
+          description: Solicitud en atención
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  request: { $ref: '#/components/schemas/HelpRequest' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409':
+          description: Otro supervisor ya tomó esta solicitud (`already_claimed`)
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+
+  /api/help-requests/{id}/resolve:
+    parameters:
+      - $ref: '#/components/parameters/Id'
+    post:
+      tags: [Ayuda]
+      summary: Resuelve una solicitud (supervisor que la tomó)
+      description: Emite `help:resolved`.
+      responses:
+        '200':
+          description: Solicitud resuelta con sus tiempos
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  request: { $ref: '#/components/schemas/HelpRequest' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409':
+          description: Solo quien atiende la solicitud puede resolverla (`cannot_resolve`)
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+
+  # ===================================================================
+  # SUPERVISIÓN
+  # ===================================================================
+  /api/directory:
+    get:
+      tags: [Supervisión]
+      summary: Destinos que el supervisor puede elegir
+      responses:
+        '200':
+          description: Sus campañas, equipos y agentes activos
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  campaigns:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id: { type: string, format: uuid }
+                        name: { type: string }
+                  teams:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id: { type: string, format: uuid }
+                        name: { type: string }
+                        campaign_id: { type: string, format: uuid }
+                  agents:
+                    type: array
+                    items: { $ref: '#/components/schemas/AgentRef' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  /api/presence:
+    get:
+      tags: [Supervisión]
+      summary: Agentes de sus equipos con su estado de conexión
+      description: Si Redis no responde, todos aparecen desconectados en lugar de fallar.
+      responses:
+        '200':
+          description: Agentes
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  agents:
+                    type: array
+                    items:
+                      allOf:
+                        - $ref: '#/components/schemas/AgentRef'
+                        - type: object
+                          properties:
+                            online: { type: boolean }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  parameters:
+    Id:
+      name: id
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+
+  responses:
+    ValidationError:
+      description: Datos inválidos
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+          example:
+            error:
+              code: validation_error
+              message: Datos inválidos
+              details: [{ path: targets, message: Elige al menos un destino }]
+    Unauthorized:
+      description: Sesión inválida o expirada
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+          example: { error: { code: unauthorized, message: Sesión inválida o expirada } }
+    Forbidden:
+      description: El rol no tiene permiso
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+          example: { error: { code: forbidden, message: No tienes permiso para esta acción } }
+    NotFound:
+      description: No existe o está fuera del alcance del usuario
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+    Conflict:
+      description: Ya existe un registro con esos datos
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+          example: { error: { code: already_exists, message: Ya existe un registro con esos datos } }
+    Unprocessable:
+      description: Referencia inexistente (`invalid_reference`) o regla violada (`invalid_state`)
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+    RateLimited:
+      description: Demasiados intentos; reintentar en 60 s
+      headers:
+        Retry-After:
+          schema: { type: integer, example: 60 }
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+          example: { error: { code: rate_limited, message: Demasiados intentos. Espera un minuto. } }
+
+  schemas:
+    Error:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: object
+          required: [code, message]
+          properties:
+            code: { type: string }
+            message: { type: string }
+            details:
+              type: array
+              items:
+                type: object
+                properties:
+                  path: { type: string }
+                  message: { type: string }
+
+    Health:
+      type: object
+      properties:
+        status: { type: string, enum: [ok, degraded, error] }
+        service: { type: string, example: api }
+        checks:
+          type: object
+          properties:
+            postgres: { type: string, enum: [ok, error] }
+            redis: { type: string, enum: [ok, error] }
+
+    Role:
+      type: string
+      enum: [agent, supervisor, admin]
+
+    HelpType:
+      type: string
+      enum: [approval, difficult_customer, process_question]
+
+    HelpStatus:
+      type: string
+      enum: [pending, in_progress, resolved]
+
+    SessionUser:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        email: { type: string, format: email }
+        fullName: { type: string }
+        role: { $ref: '#/components/schemas/Role' }
+        isActive: { type: boolean }
+        teamIds: { type: array, items: { type: string, format: uuid } }
+        campaignIds: { type: array, items: { type: string, format: uuid } }
+
+    Campaign:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        name: { type: string }
+        is_active: { type: boolean }
+        created_at: { type: string, format: date-time }
+
+    Team:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        campaign_id: { type: string, format: uuid }
+        name: { type: string }
+        is_active: { type: boolean }
+        created_at: { type: string, format: date-time }
+
+    TeamWithSupervisors:
+      allOf:
+        - $ref: '#/components/schemas/Team'
+        - type: object
+          properties:
+            campaign_name: { type: string }
+            supervisors:
+              type: array
+              items:
+                type: object
+                properties:
+                  id: { type: string, format: uuid }
+                  full_name: { type: string }
+
+    User:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        email: { type: string, format: email }
+        full_name: { type: string }
+        role: { $ref: '#/components/schemas/Role' }
+        team_id: { type: string, format: uuid, nullable: true }
+        is_active: { type: boolean }
+        created_at: { type: string, format: date-time }
+        updated_at: { type: string, format: date-time }
+
+    UserListItem:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        email: { type: string, format: email }
+        full_name: { type: string }
+        role: { $ref: '#/components/schemas/Role' }
+        team_id: { type: string, format: uuid, nullable: true }
+        team_name: { type: string, nullable: true }
+        is_active: { type: boolean }
+
+    AgentRef:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        full_name: { type: string }
+        team_id: { type: string, format: uuid }
+
+    PublishAnnouncement:
+      type: object
+      required: [title, body, priority, targets]
+      properties:
+        title: { type: string, minLength: 1, maxLength: 200 }
+        body: { type: string, minLength: 1, maxLength: 5000 }
+        priority: { type: string, enum: [info, critical] }
+        reminderIntervalMinutes:
+          type: integer
+          minimum: 1
+          maximum: 240
+          description: Obligatorio si la prioridad es `critical`
+        expiresAt: { type: string, format: date-time }
+        targets:
+          type: object
+          description: Al menos un destino en total
+          required: [campaignIds, teamIds, userIds]
+          properties:
+            campaignIds: { type: array, maxItems: 500, items: { type: string, format: uuid } }
+            teamIds: { type: array, maxItems: 500, items: { type: string, format: uuid } }
+            userIds: { type: array, maxItems: 500, items: { type: string, format: uuid } }
+      example:
+        title: Cambio en la tarifa de retención
+        body: Desde hoy el descuento máximo es del 15 %.
+        priority: critical
+        reminderIntervalMinutes: 10
+        targets: { campaignIds: [], teamIds: ['00000000-0000-4000-8000-000000000000'], userIds: [] }
+
+    PublishedAnnouncement:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        author_id: { type: string, format: uuid }
+        title: { type: string }
+        body: { type: string }
+        priority: { type: string, enum: [info, critical] }
+        reminder_interval_minutes: { type: integer, nullable: true }
+        reminders_sent: { type: integer }
+        next_reminder_at: { type: string, format: date-time, nullable: true }
+        expires_at: { type: string, format: date-time, nullable: true }
+        published_at: { type: string, format: date-time }
+        recipients_count: { type: integer }
+
+    AgentAnnouncement:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        title: { type: string }
+        body: { type: string }
+        priority: { type: string, enum: [info, critical] }
+        published_at: { type: string, format: date-time }
+        author_name: { type: string }
+        acknowledged_at: { type: string, format: date-time, nullable: true }
+
+    SupervisorAnnouncement:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        title: { type: string }
+        body: { type: string }
+        priority: { type: string, enum: [info, critical] }
+        published_at: { type: string, format: date-time }
+        reminder_interval_minutes: { type: integer, nullable: true }
+        reminders_sent: { type: integer }
+        author_name: { type: string }
+        recipients_count: { type: integer }
+        acks_count: { type: integer }
+
+    StatusPerson:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        full_name: { type: string }
+        team_name: { type: string }
+        reminder_count: { type: integer }
+        last_reminded_at: { type: string, format: date-time, nullable: true }
+        acknowledged_at: { type: string, format: date-time, nullable: true }
+
+    AnnouncementStatus:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        title: { type: string }
+        priority: { type: string, enum: [info, critical] }
+        total: { type: integer }
+        acknowledgedCount: { type: integer }
+        percent: { type: integer, minimum: 0, maximum: 100 }
+        acknowledged: { type: array, items: { $ref: '#/components/schemas/StatusPerson' } }
+        pending: { type: array, items: { $ref: '#/components/schemas/StatusPerson' } }
+
+    HelpRequest:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        team_id: { type: string, format: uuid }
+        agent_id: { type: string, format: uuid }
+        type: { $ref: '#/components/schemas/HelpType' }
+        priority: { type: integer, enum: [1, 2, 3] }
+        summary: { type: string }
+        status: { $ref: '#/components/schemas/HelpStatus' }
+        claimed_by: { type: string, format: uuid, nullable: true }
+        created_at: { type: string, format: date-time }
+        claimed_at: { type: string, format: date-time, nullable: true }
+        resolved_at: { type: string, format: date-time, nullable: true }
+        agent_name: { type: string }
+        supervisor_name: { type: string, nullable: true }
+        wait_seconds: { type: integer, description: 'claimed_at (o ahora) − created_at' }
+        resolution_seconds: { type: integer, nullable: true, description: 'resolved_at − claimed_at' }

@@ -1,0 +1,23 @@
+sequenceDiagram
+    autonumber
+    actor S1 as Supervisor 1
+    actor S2 as Supervisor 2
+    participant A as api
+    participant P as PostgreSQL
+    participant G as gateway
+    actor AG as Agente
+    par al mismo tiempo
+        S1->>A: POST /help-requests/{id}/claim
+        A->>P: UPDATE … SET status='in_progress' WHERE id=$2 AND status='pending' AND team_id=ANY($3)
+        Note over P: bloquea la fila
+    and
+        S2->>A: POST /help-requests/{id}/claim
+        A->>P: mismo UPDATE (espera el candado)
+    end
+    P-->>A: S1: 1 fila actualizada
+    A-->>S1: 200 { request }
+    A->>G: emit help:claimed → team:{id}:supervisors y user:{agente}
+    G-->>AG: «En atención» con el nombre del supervisor
+    P-->>A: S2: re-evalúa WHERE, 0 filas
+    A->>P: SELECT status (¿existe y es de su equipo?)
+    A-->>S2: 409 already_claimed
