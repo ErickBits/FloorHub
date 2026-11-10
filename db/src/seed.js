@@ -2,36 +2,57 @@ import bcrypt from 'bcrypt';
 import pg from 'pg';
 import { connectionFor } from './migrate.js';
 
+const ADMIN = { fullName: 'Andrés Felipe Morales', email: 'andres.morales@floorhub.com' };
+
 const CAMPAIGNS = [
   {
     name: 'Telecomunicaciones Andina',
     teams: [
-      { name: 'Retención', supervisor: 'supervisor1', agents: ['agente1', 'agente2', 'agente3'] },
-      { name: 'Soporte técnico', supervisor: 'supervisor2', agents: ['agente4', 'agente5', 'agente6'] },
+      {
+        name: 'Retención',
+        supervisor: { fullName: 'Laura Valentina Gómez', email: 'laura.gomez@floorhub.com' },
+        agents: [
+          { fullName: 'Santiago Ramírez', email: 'santiago.ramirez@floorhub.com' },
+          { fullName: 'Daniela Ospina', email: 'daniela.ospina@floorhub.com' },
+          { fullName: 'Camilo Rincón', email: 'camilo.rincon@floorhub.com' },
+        ],
+      },
+      {
+        name: 'Soporte técnico',
+        supervisor: { fullName: 'Julián Andrés Herrera', email: 'julian.herrera@floorhub.com' },
+        agents: [
+          { fullName: 'Valentina Muñoz', email: 'valentina.munoz@floorhub.com' },
+          { fullName: 'Sebastián Cárdenas', email: 'sebastian.cardenas@floorhub.com' },
+          { fullName: 'Mariana López', email: 'mariana.lopez@floorhub.com' },
+        ],
+      },
     ],
   },
   {
     name: 'Banco del Valle',
     teams: [
-      { name: 'Tarjetas', supervisor: 'supervisor3', agents: ['agente7', 'agente8', 'agente9'] },
+      {
+        name: 'Tarjetas',
+        supervisor: { fullName: 'Paola Andrea Castaño', email: 'paola.castano@floorhub.com' },
+        agents: [
+          { fullName: 'Felipe Arango', email: 'felipe.arango@floorhub.com' },
+          { fullName: 'Natalia Quintero', email: 'natalia.quintero@floorhub.com' },
+          { fullName: 'Juan David Mejía', email: 'juan.mejia@floorhub.com' },
+        ],
+      },
     ],
   },
 ];
 
-function displayName(handle) {
-  const number = handle.match(/\d+$/)?.[0] ?? '';
-  const base = handle.replace(/\d+$/, '');
-  return `${base[0].toUpperCase()}${base.slice(1)} ${number}`.trim();
-}
-
-async function upsertUser(client, { handle, role, teamId = null, passwordHash }) {
+async function upsertUser(client, { email, fullName, role, teamId = null, passwordHash }) {
   const { rows } = await client.query(
     `INSERT INTO users (email, password_hash, full_name, role, team_id)
      VALUES ($1, $2, $3, $4, $5)
      ON CONFLICT (lower(email)) DO UPDATE
-       SET password_hash = EXCLUDED.password_hash, is_active = true, updated_at = now()
+       SET password_hash = EXCLUDED.password_hash, full_name = EXCLUDED.full_name,
+           is_active = true, updated_at = now()
      RETURNING id`,
-    [`${handle}@floorhub.test`, passwordHash, displayName(handle), role, teamId],
+    [email, passwordHash, fullName, role, teamId],
   );
   return rows[0].id;
 }
@@ -47,7 +68,7 @@ export async function seed({
   await client.connect();
   try {
     await client.query('BEGIN');
-    await upsertUser(client, { handle: 'admin', role: 'admin', passwordHash });
+    await upsertUser(client, { ...ADMIN, role: 'admin', passwordHash });
     for (const campaign of CAMPAIGNS) {
       const { rows: [{ id: campaignId }] } = await client.query(
         `INSERT INTO campaigns (name) VALUES ($1)
@@ -61,14 +82,14 @@ export async function seed({
           [campaignId, team.name],
         );
         const supervisorId = await upsertUser(client, {
-          handle: team.supervisor, role: 'supervisor', passwordHash,
+          ...team.supervisor, role: 'supervisor', passwordHash,
         });
         await client.query(
           'INSERT INTO team_supervisors (team_id, user_id) VALUES ($1, $2) ON CONFLICT DO NOTHING',
           [teamId, supervisorId],
         );
-        for (const handle of team.agents) {
-          await upsertUser(client, { handle, role: 'agent', teamId, passwordHash });
+        for (const agent of team.agents) {
+          await upsertUser(client, { ...agent, role: 'agent', teamId, passwordHash });
         }
       }
     }

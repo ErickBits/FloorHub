@@ -78,7 +78,7 @@ cat <<SUMMARY
 ========================================================
  FloorHub está desplegado
  URL:      http://$hostname   (el DNS puede tardar 2-3 minutos)
- Usuarios: admin, supervisor1..3, agente1..9 @floorhub.test
+ Admin:    andres.morales@floorhub.com (ver README para el resto)
  Contraseña: make demo-password
 
  CADA HORA ENCENDIDO CUESTA UNOS 0,26 USD.

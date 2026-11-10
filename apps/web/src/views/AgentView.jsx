@@ -1,7 +1,9 @@
 import { useCallback, useState } from 'react';
 import { api } from '../api.js';
 import { Elapsed } from '../components/Tick.jsx';
+import { ConnectionBadge, PageHeader, Shell } from '../components/Shell.jsx';
 import { formatDateTime, formatDuration, HELP_STATUS, HELP_TYPES } from '../format.js';
+import { useHashRoute } from '../router.js';
 import { useSocket } from '../useSocket.js';
 
 function AnnouncementCard({ announcement, onAcknowledge, reminded }) {
@@ -50,52 +52,55 @@ function HelpPanel({ requests, onCreate }) {
     }
   }
 
+  const resolved = requests.filter((request) => request.status === 'resolved');
   return (
-    <section className="card">
-      <h2>Levantar la mano</h2>
-      {active ? (
-        <div className={`help-status help-status-${active.status}`}>
-          <strong>{HELP_STATUS[active.status]}</strong>
-          <p>{HELP_TYPES[active.type]}: {active.summary}</p>
-          {active.status === 'pending' ? (
-            <p className="small">Esperando supervisor · <Elapsed since={active.created_at} /></p>
-          ) : (
-            <p className="small"><strong>{active.supervisor_name}</strong> tomó tu solicitud. Esperaste {formatDuration(active.wait_seconds)}.</p>
-          )}
-        </div>
-      ) : (
-        <form onSubmit={submit} className="stack">
-          <label className="field">
-            ¿Qué necesitas?
-            <select value={type} onChange={(e) => setType(e.target.value)}>
-              {Object.entries(HELP_TYPES).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
-            </select>
-          </label>
-          <label className="field">
-            Resumen
-            <textarea required maxLength={500} rows={3} value={summary} onChange={(e) => setSummary(e.target.value)} placeholder="Cuéntale en una línea al supervisor qué pasa" />
-          </label>
-          {error && <p className="error" role="alert">{error}</p>}
-          <button type="submit" className="button button-primary" disabled={busy}>Solicitar ayuda</button>
-        </form>
-      )}
-      {requests.some((request) => request.status === 'resolved') && (
-        <>
-          <h3 className="section-title">Resueltas hoy</h3>
+    <>
+      <section className="card form-narrow">
+        {active ? (
+          <div className={`help-status help-status-${active.status}`}>
+            <strong>{HELP_STATUS[active.status]}</strong>
+            <p>{HELP_TYPES[active.type]}: {active.summary}</p>
+            {active.status === 'pending' ? (
+              <p className="small">Esperando supervisor · <Elapsed since={active.created_at} /></p>
+            ) : (
+              <p className="small"><strong>{active.supervisor_name}</strong> tomó tu solicitud. Esperaste {formatDuration(active.wait_seconds)}.</p>
+            )}
+          </div>
+        ) : (
+          <form onSubmit={submit} className="stack">
+            <label className="field">
+              ¿Qué necesitas?
+              <select value={type} onChange={(e) => setType(e.target.value)}>
+                {Object.entries(HELP_TYPES).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
+              </select>
+            </label>
+            <label className="field">
+              Resumen
+              <textarea required maxLength={500} rows={3} value={summary} onChange={(e) => setSummary(e.target.value)} placeholder="Cuéntale en una línea al supervisor qué pasa" />
+            </label>
+            {error && <p className="error" role="alert">{error}</p>}
+            <button type="submit" className="button button-primary" disabled={busy}>Solicitar ayuda</button>
+          </form>
+        )}
+      </section>
+      {resolved.length > 0 && (
+        <section className="card form-narrow">
+          <h2>Resueltas recientemente</h2>
           <ul className="plain-list small">
-            {requests.filter((request) => request.status === 'resolved').slice(0, 5).map((request) => (
+            {resolved.map((request) => (
               <li key={request.id}>
                 {HELP_TYPES[request.type]} · espera {formatDuration(request.wait_seconds)} · atención {formatDuration(request.resolution_seconds)}
               </li>
             ))}
           </ul>
-        </>
+        </section>
       )}
-    </section>
+    </>
   );
 }
 
-export function AgentView({ notify }) {
+export function AgentView({ user, notify, onLogout }) {
+  const [pageId = 'comunicados'] = useHashRoute();
   const [announcements, setAnnouncements] = useState([]);
   const [requests, setRequests] = useState([]);
   const [reminded, setReminded] = useState(() => new Set());
@@ -156,28 +161,34 @@ export function AgentView({ notify }) {
   }
 
   const pendingCount = announcements.filter((item) => item.priority === 'critical' && !item.acknowledged_at).length;
+  const activeRequest = requests.find((request) => request.status !== 'resolved');
+  const pages = [
+    { id: 'comunicados', label: 'Comunicados', badge: pendingCount, badgeTone: 'badge-critical' },
+    { id: 'ayuda', label: 'Levantar la mano', badge: activeRequest ? HELP_STATUS[activeRequest.status] : null, badgeTone: 'badge-warning' },
+  ];
+  const currentId = pages.some((page) => page.id === pageId) ? pageId : 'comunicados';
 
   return (
-    <div className="columns columns-agent">
-      <section className="stack">
-        <div className="row-between">
-          <h2>Comunicados {pendingCount > 0 && <span className="badge badge-critical">{pendingCount} por confirmar</span>}</h2>
-          <ConnectionBadge connected={connected} />
-        </div>
-        {loaded && announcements.length === 0 && <p className="muted card">Aún no tienes comunicados.</p>}
-        {announcements.map((announcement) => (
-          <AnnouncementCard key={announcement.id} announcement={announcement} onAcknowledge={acknowledge} reminded={reminded.has(announcement.id)} />
-        ))}
-      </section>
-      <HelpPanel requests={requests} onCreate={createRequest} />
-    </div>
-  );
-}
-
-export function ConnectionBadge({ connected }) {
-  return (
-    <span className={`connection ${connected ? 'connection-on' : 'connection-off'}`}>
-      {connected ? 'En vivo' : 'Reconectando…'}
-    </span>
+    <Shell user={user} onLogout={onLogout} pages={pages} currentId={currentId} status={<ConnectionBadge connected={connected} />}>
+      {currentId === 'ayuda' ? (
+        <>
+          <PageHeader title="Levantar la mano" description="Pide ayuda a tu supervisor. Las solicitudes se atienden por prioridad." />
+          <HelpPanel requests={requests} onCreate={createRequest} />
+        </>
+      ) : (
+        <>
+          <PageHeader
+            title="Comunicados"
+            description={pendingCount > 0 ? `Tienes ${pendingCount} comunicado(s) crítico(s) por confirmar.` : 'Estás al día con los comunicados.'}
+          />
+          <section className="stack">
+            {loaded && announcements.length === 0 && <p className="muted card">Aún no tienes comunicados.</p>}
+            {announcements.map((announcement) => (
+              <AnnouncementCard key={announcement.id} announcement={announcement} onAcknowledge={acknowledge} reminded={reminded.has(announcement.id)} />
+            ))}
+          </section>
+        </>
+      )}
+    </Shell>
   );
 }

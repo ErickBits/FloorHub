@@ -1,16 +1,17 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { api } from '../api.js';
+import { matches, SearchBox, SearchSelect } from '../components/SearchSelect.jsx';
+import { ConnectionBadge, PageHeader, Shell } from '../components/Shell.jsx';
 import { Elapsed } from '../components/Tick.jsx';
 import { formatDateTime, formatDuration, HELP_STATUS, HELP_TYPES } from '../format.js';
+import { navigate, useHashRoute } from '../router.js';
 import { useSocket } from '../useSocket.js';
-import { ConnectionBadge } from './AgentView.jsx';
 
 function HelpQueue({ requests, user, onClaim, onResolve }) {
   const open = requests.filter((request) => request.status !== 'resolved');
   const resolved = requests.filter((request) => request.status === 'resolved');
   return (
     <section className="card">
-      <h2>Cola de ayuda <span className="badge">{open.filter((item) => item.status === 'pending').length} en espera</span></h2>
       {open.length === 0 && <p className="muted">No hay solicitudes abiertas.</p>}
       <ul className="queue">
         {open.map((request) => (
@@ -39,7 +40,7 @@ function HelpQueue({ requests, user, onClaim, onResolve }) {
         <>
           <h3 className="section-title">Resueltas (24 h)</h3>
           <ul className="plain-list small">
-            {resolved.slice(0, 5).map((request) => (
+            {resolved.map((request) => (
               <li key={request.id}>
                 {request.agent_name} · espera {formatDuration(request.wait_seconds)} · atención {formatDuration(request.resolution_seconds)}
               </li>
@@ -52,12 +53,21 @@ function HelpQueue({ requests, user, onClaim, onResolve }) {
 }
 
 function Presence({ agents }) {
-  const online = agents.filter((agent) => agent.online).length;
+  const [query, setQuery] = useState('');
+  const [onlyOnline, setOnlyOnline] = useState(false);
+  const visible = agents.filter((agent) => (!onlyOnline || agent.online) && matches(query, agent.full_name));
   return (
     <section className="card">
-      <h2>Presencia <span className="badge">{online} de {agents.length}</span></h2>
+      <div className="toolbar">
+        <SearchBox value={query} onChange={setQuery} placeholder="Buscar agente…" />
+        <label className="checkbox">
+          <input type="checkbox" checked={onlyOnline} onChange={(e) => setOnlyOnline(e.target.checked)} />
+          Solo conectados
+        </label>
+      </div>
+      {visible.length === 0 && <p className="muted">Ningún agente coincide.</p>}
       <ul className="presence">
-        {agents.map((agent) => (
+        {visible.map((agent) => (
           <li key={agent.id}>
             <span className={`dot ${agent.online ? 'dot-on' : 'dot-off'}`} aria-hidden="true" />
             {agent.full_name}
@@ -74,6 +84,16 @@ function Composer({ directory, onPublished, notify }) {
   const [form, setForm] = useState(empty);
   const [busy, setBusy] = useState(false);
   const set = (field) => (event) => setForm({ ...form, [field]: event.target.value });
+
+  const targetOptions = useMemo(() => {
+    const campaignName = Object.fromEntries(directory.campaigns.map((item) => [item.id, item.name]));
+    const teamName = Object.fromEntries(directory.teams.map((item) => [item.id, item.name]));
+    return [
+      ...directory.campaigns.map((item) => ({ value: `campaign:${item.id}`, label: item.name, group: 'Campañas' })),
+      ...directory.teams.map((item) => ({ value: `team:${item.id}`, label: item.name, hint: campaignName[item.campaign_id], group: 'Equipos' })),
+      ...directory.agents.map((item) => ({ value: `user:${item.id}`, label: item.full_name, hint: teamName[item.team_id], group: 'Agentes' })),
+    ];
+  }, [directory]);
 
   async function submit(event) {
     event.preventDefault();
@@ -95,6 +115,7 @@ function Composer({ directory, onPublished, notify }) {
       setForm(empty);
       notify('Comunicado publicado', 'success');
       onPublished();
+      navigate('comunicados');
     } catch (failure) {
       notify(failure.message, 'error');
     } finally {
@@ -103,8 +124,7 @@ function Composer({ directory, onPublished, notify }) {
   }
 
   return (
-    <section className="card">
-      <h2>Nuevo comunicado</h2>
+    <section className="card form-narrow">
       <form className="stack" onSubmit={submit}>
         <label className="field">
           Título
@@ -115,21 +135,17 @@ function Composer({ directory, onPublished, notify }) {
           <textarea required maxLength={5000} rows={3} value={form.body} onChange={set('body')} />
         </label>
         <div className="form-row">
-          <label className="field">
-            Dirigido a
-            <select required value={form.target} onChange={set('target')}>
-              <option value="" disabled>Elige un destino</option>
-              <optgroup label="Campañas">
-                {directory.campaigns.map((item) => <option key={item.id} value={`campaign:${item.id}`}>{item.name}</option>)}
-              </optgroup>
-              <optgroup label="Equipos">
-                {directory.teams.map((item) => <option key={item.id} value={`team:${item.id}`}>{item.name}</option>)}
-              </optgroup>
-              <optgroup label="Agentes">
-                {directory.agents.map((item) => <option key={item.id} value={`user:${item.id}`}>{item.full_name}</option>)}
-              </optgroup>
-            </select>
-          </label>
+          <div className="field">
+            <label htmlFor="announcement-target">Dirigido a</label>
+            <SearchSelect
+              id="announcement-target"
+              required
+              options={targetOptions}
+              value={form.target}
+              onChange={(target) => setForm((current) => ({ ...current, target }))}
+              placeholder="Busca una campaña, equipo o agente…"
+            />
+          </div>
           <label className="field">
             Prioridad
             <select value={form.priority} onChange={set('priority')}>
@@ -182,12 +198,15 @@ function AnnouncementStatus({ status }) {
 }
 
 function Announcements({ announcements, statuses, expandedId, onToggle }) {
+  const [query, setQuery] = useState('');
+  const visible = announcements.filter((item) => matches(query, item.title));
   return (
     <section className="card">
-      <h2>Comunicados publicados</h2>
+      <div className="toolbar"><SearchBox value={query} onChange={setQuery} placeholder="Buscar por título…" /></div>
       {announcements.length === 0 && <p className="muted">Aún no hay comunicados.</p>}
+      {announcements.length > 0 && visible.length === 0 && <p className="muted">Ningún comunicado coincide.</p>}
       <ul className="announcement-list">
-        {announcements.map((item) => {
+        {visible.map((item) => {
           const status = statuses[item.id];
           const total = status?.total ?? item.recipients_count;
           const acknowledged = status?.acknowledgedCount ?? item.acks_count;
@@ -210,7 +229,8 @@ function Announcements({ announcements, statuses, expandedId, onToggle }) {
   );
 }
 
-export function SupervisorView({ user, notify }) {
+export function SupervisorView({ user, notify, onLogout }) {
+  const [pageId = 'cola', subPage] = useHashRoute();
   const [directory, setDirectory] = useState({ campaigns: [], teams: [], agents: [] });
   const [requests, setRequests] = useState([]);
   const [agents, setAgents] = useState([]);
@@ -290,27 +310,52 @@ export function SupervisorView({ user, notify }) {
     refreshQueue();
   }
 
+  const pendingCount = requests.filter((item) => item.status === 'pending').length;
+  const onlineCount = agents.filter((agent) => agent.online).length;
+  const pages = [
+    { id: 'cola', label: 'Cola de ayuda', section: 'Piso', badge: pendingCount, badgeTone: 'badge-warning' },
+    { id: 'presencia', label: 'Presencia', section: 'Piso', badge: `${onlineCount}/${agents.length}` },
+    { id: 'comunicados/nuevo', label: 'Nuevo comunicado', section: 'Comunicados' },
+    { id: 'comunicados', label: 'Comunicados publicados', section: 'Comunicados' },
+  ];
+  const routeId = subPage ? `${pageId}/${subPage}` : pageId;
+  const currentId = pages.some((page) => page.id === routeId) ? routeId : 'cola';
+
+  const content = {
+    cola: (
+      <>
+        <PageHeader title="Cola de ayuda" description={`${pendingCount} solicitud(es) en espera, ordenadas por prioridad.`} />
+        <HelpQueue requests={requests} user={user} onClaim={claim} onResolve={resolve} />
+      </>
+    ),
+    presencia: (
+      <>
+        <PageHeader title="Presencia" description={`${onlineCount} de ${agents.length} agentes conectados.`} />
+        <Presence agents={agents} />
+      </>
+    ),
+    'comunicados/nuevo': (
+      <>
+        <PageHeader title="Nuevo comunicado" description="Los comunicados críticos se recuerdan a quien no los haya confirmado." />
+        <Composer directory={directory} onPublished={loadAnnouncements} notify={notify} />
+      </>
+    ),
+    comunicados: (
+      <>
+        <PageHeader title="Comunicados publicados" description="Abre un comunicado para ver quién lo confirmó." />
+        <Announcements
+          announcements={announcements}
+          statuses={statuses}
+          expandedId={expandedId}
+          onToggle={(id) => setExpandedId((current) => (current === id ? null : id))}
+        />
+      </>
+    ),
+  };
+
   return (
-    <>
-      <div className="row-between page-header">
-        <h1>Piso de operaciones</h1>
-        <ConnectionBadge connected={connected} />
-      </div>
-      <div className="columns columns-supervisor">
-        <div className="stack">
-          <HelpQueue requests={requests} user={user} onClaim={claim} onResolve={resolve} />
-          <Presence agents={agents} />
-        </div>
-        <div className="stack">
-          <Composer directory={directory} onPublished={loadAnnouncements} notify={notify} />
-          <Announcements
-            announcements={announcements}
-            statuses={statuses}
-            expandedId={expandedId}
-            onToggle={(id) => setExpandedId((current) => (current === id ? null : id))}
-          />
-        </div>
-      </div>
-    </>
+    <Shell user={user} onLogout={onLogout} pages={pages} currentId={currentId} status={<ConnectionBadge connected={connected} />}>
+      {content[currentId]}
+    </Shell>
   );
 }

@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { api, session, setUnauthorizedHandler } from './api.js';
 import { Toasts, useToasts } from './components/Toasts.jsx';
-import { ROLE_LABELS } from './format.js';
 import { AdminView } from './views/AdminView.jsx';
 import { AgentView } from './views/AgentView.jsx';
 import { LoginView } from './views/LoginView.jsx';
@@ -17,6 +16,7 @@ export function App() {
   const logout = useCallback(() => {
     session.token = null;
     setUser(null);
+    window.location.hash = '';
   }, []);
 
   useEffect(() => setUnauthorizedHandler(logout), [logout]);
@@ -34,25 +34,7 @@ export function App() {
   const View = user && VIEWS[user.role];
   return (
     <>
-      {user ? (
-        <div className="shell">
-          <header className="topbar">
-            <div className="brand">FloorHub</div>
-            <div className="topbar-user">
-              <span>
-                <strong>{user.fullName}</strong>
-                <span className="muted"> · {ROLE_LABELS[user.role]}</span>
-              </span>
-              <button type="button" className="button button-ghost" onClick={logout}>Salir</button>
-            </div>
-          </header>
-          <main className="content">
-            <View user={user} notify={notify} />
-          </main>
-        </div>
-      ) : (
-        <LoginView onLogin={setUser} />
-      )}
+      {user ? <View user={user} notify={notify} onLogout={logout} /> : <LoginView onLogin={setUser} />}
       <Toasts toasts={toasts} />
     </>
   );
