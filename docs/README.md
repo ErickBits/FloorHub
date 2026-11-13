@@ -8,7 +8,7 @@ Todo lo que dice esta documentación sale del código del repositorio (versión 
 
 | Si eres… | Empieza por |
 |---|---|
-| Usuario de la aplicación | [13 · Manual de usuario](13-manual-de-usuario.md) |
+| Usuario de la aplicación | 13 · Manual de usuario de tu rol: [agente](13-manual-de-usuario-agente.md), [supervisor](13-manual-de-usuario-supervisor.md) o [administrador](13-manual-de-usuario-administrador.md) |
 | Jurado o evaluador | [01 · Requerimientos](01-especificacion-requerimientos-ieee830.md), [02 · Arquitectura](02-arquitectura-software-c4-y-backend.md) y [16 · Guion de sustentación](16-guion-demostracion-sustentacion.md) |
 | Quien instala o despliega | [06 · Manual técnico](06-manual-tecnico-instalacion-y-despliegue.md) y [17 · Diseño técnico y costos](17-diseno-tecnico-y-costos.md) |
 | Desarrollador nuevo | [18 · Guía por fases](18-guia-por-fases.md), [02 · Arquitectura](02-arquitectura-software-c4-y-backend.md) y [04 · Base de datos](04-base-de-datos-diseno-y-esquema.md) |
@@ -50,7 +50,7 @@ Todo lo que dice esta documentación sale del código del repositorio (versión 
 
 | N.º | Documento | Contenido |
 |---|---|---|
-| 13 | [Manual de usuario](13-manual-de-usuario.md) | Guía por rol con capturas de pantalla |
+| 13 | Manual de usuario: [agente](13-manual-de-usuario-agente.md), [supervisor](13-manual-de-usuario-supervisor.md) y [administrador](13-manual-de-usuario-administrador.md) | Un manual por rol con capturas de pantalla |
 | 16 | [Guion de demostración para la sustentación](16-guion-demostracion-sustentacion.md) | Lista de chequeo, 5 escenarios y preguntas frecuentes del jurado |
 
 ## Carpetas
@@ -60,7 +60,7 @@ Todo lo que dice esta documentación sale del código del repositorio (versión 
 | [`api/`](api) | `openapi_floorhub.yaml`: contrato OpenAPI 3.0.3 de los 24 endpoints |
 | [`requerimientos/`](requerimientos) | `Matriz_de_requerimientos_FloorHub.xlsx`: hojas RF, RNF, Trazabilidad (RF × CU × clases), RN y RI, y Control de cambios |
 | [`diagramas/`](diagramas) | 22 diagramas (C4, despliegue, casos de uso, clases, secuencia, estados, navegación, ER, relacional y flujos), con sus fuentes en [`diagramas/fuentes`](diagramas/fuentes) |
-| [`manual/`](manual) | Manual de usuario maquetado (ODT y PDF) y las 14 capturas que usan el PDF y el documento 13 |
+| [`manual/`](manual) | Manuales de usuario maquetados por rol (agente, supervisor y administrador, en ODT y PDF) y las 14 capturas que usan los PDF y los documentos 13 |
 | [`presentacion/`](presentacion) | Presentación del proyecto para LibreOffice Impress (ODP) y su versión en PDF |
 | [`branding/`](branding) | Logo (isotipo y horizontal, para fondo claro y oscuro), favicon y guía de marca en PDF |
 
@@ -71,6 +71,6 @@ Todo lo que dice esta documentación sale del código del repositorio (versión 
 | `db/migrations/*.sql` | 04, 08, `diagramas/fuentes/der.mmd`, `clases_dominio.mmd` y el modelo relacional |
 | Una ruta de `apps/api/src/routes` | 02 (catálogo de endpoints), 09 y `api/openapi_floorhub.yaml` |
 | Una prueba en `apps/*/test` | 07 y 14 |
-| Una pantalla de `apps/web` | 03, 09, 13, las capturas y el manual en ODT |
-| Un requisito | 01, 10, la matriz de Excel y el manual en ODT |
+| Una pantalla de `apps/web` | 03, 09, 13, las capturas y los manuales en ODT |
+| Un requisito | 01, 10 y la matriz de Excel |
 | La infraestructura o los precios de AWS | 06 y 17 |

@@ -3,6 +3,7 @@ import { AppError, forbidden, notFound } from '../errors.js';
 
 const ACTIVE_TTL_SECONDS = 120;
 
+//Comprobando lso perisos
 function assertTargetsAllowed(user, targets, agentTeams) {
   const teams = new Set(user.teamIds);
   const campaigns = new Set(user.campaignIds);
@@ -16,6 +17,7 @@ export async function publishAnnouncement(context, user, input) {
   const { pool, cache, emitter, queues } = context;
   const { targets } = input;
 
+  //If 3 agents will receive an announcement, 3 must be active
   const { announcement, recipients } = await withTransaction(pool, async (client) => {
     const direct = await client.query(
       "SELECT id, team_id FROM users WHERE id = ANY($1) AND role = 'agent' AND is_active",
@@ -26,6 +28,7 @@ export async function publishAnnouncement(context, user, input) {
     }
     assertTargetsAllowed(user, targets, direct.rows.map((row) => row.team_id));
 
+    //Incertamos el comunicado
     const { rows: [created] } = await client.query(
       `INSERT INTO announcements (author_id, title, body, priority, reminder_interval_minutes, next_reminder_at, expires_at)
        VALUES ($1, $2, $3, $4, $5::integer, now() + make_interval(mins => $5::integer), $6)

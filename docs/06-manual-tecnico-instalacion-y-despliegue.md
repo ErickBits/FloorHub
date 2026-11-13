@@ -206,9 +206,38 @@ make demo-password                   # contraseña de los usuarios de la demo
 
 Crear todo tarda entre 15 y 25 minutos. La alternativa es el workflow **Deploy to AWS**, que pide aprobación manual.
 
+#### Con HTTPS (opcional, gratis)
+
+```bash
+IMAGE_OWNER=tu-usuario IMAGE_TAG=$(git rev-parse HEAD) make deploy-tls
+```
+
+Usa el overlay `deploy/k8s/overlays/prod-tls`, que añade un pod de **Caddy** delante de Nginx:
+
+```text
+Navegador ──HTTPS──▶ NLB (TCP 80 y 443) ──▶ Caddy (TLS) ──HTTP──▶ Nginx ──▶ api / gateway
+```
+
+1. El NLB se crea para el Service `caddy` y Nginx queda solo dentro del clúster.
+2. El script lee la IP pública del NLB y forma el nombre `IP-con-guiones.sslip.io`. sslip.io resuelve ese nombre a esa IP sin registrar nada.
+3. Caddy pide el certificado a Let's Encrypt (reto HTTP-01 por el puerto 80) y lo renueva solo.
+4. El script espera a que `https://…/health` responda e imprime la URL. Toda petición HTTP se redirige a HTTPS, y el WebSocket pasa a `wss://` sin cambios en la aplicación.
+
+| Variable | Efecto |
+|---|---|
+| `ACME_STAGING=1` | Usa el entorno de pruebas de Let's Encrypt. Sirve para ensayar sin gastar el límite de emisión, pero el navegador mostrará el certificado como no confiable. |
+
+Cosas a tener en cuenta:
+
+- **No cuesta más:** es el mismo NLB y el certificado es gratuito.
+- **La URL cambia en cada despliegue nuevo**, porque el NLB recibe otra IP. Si se repite `make deploy-tls` sin destruir, se conserva.
+- **El certificado vive en el disco temporal del pod.** Si Caddy se reinicia, lo vuelve a pedir; Let's Encrypt permite 5 certificados idénticos por semana.
+- **Para volver a HTTP** basta con `make deploy`: borra Caddy y su balanceador y publica Nginx de nuevo.
+- Si HTTPS no responde en 10 minutos, la aplicación queda desplegada igualmente. Revisa `kubectl -n floorhub logs deployment/caddy`.
+
 ### 7.3. Verificar
 
-- [ ] La URL del NLB abre y permite iniciar sesión.
+- [ ] La URL del NLB abre y permite iniciar sesión. Con `make deploy-tls`, el candado aparece y `http://` redirige a `https://`.
 - [ ] Un comunicado llega a dos ventanas al instante.
 - [ ] Dos supervisores no pueden tomar la misma solicitud.
 - [ ] `kubectl -n floorhub get pods,hpa` muestra todo en `Running`.

@@ -4,6 +4,10 @@ import pg from 'pg';
 import { createContext, loadConfig, signToken } from '@floorhub/shared';
 import { appUrl, ownerUrl, redisUrl } from './env.js';
 
+/**
+ * vitest 
+ */
+
 const PASSWORD_HASH = bcrypt.hashSync('password-de-prueba', 4);
 export const TEST_PASSWORD = 'password-de-prueba';
 

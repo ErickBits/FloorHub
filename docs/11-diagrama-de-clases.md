@@ -48,6 +48,7 @@ FloorHub está escrito en JavaScript con **módulos y funciones**, no con clases
 | `createRequest` | `POST /api/help-requests` | — | `help_requests` |
 | `listRequests` | `GET /api/help-requests` | `help_requests`, `users` | — |
 | `claimRequest` | `POST /api/help-requests/{id}/claim` | `help_requests` | `help_requests` |
+| `replyToRequest` | `POST /api/help-requests/{id}/replies` | `help_requests` | `help_request_replies` |
 | `resolveRequest` | `POST /api/help-requests/{id}/resolve` | `help_requests` | `help_requests` |
 | `sendReminder` | Cola `reminders` | `announcements`, `announcement_recipients`, `announcement_acks` | `announcements`, `announcement_recipients` |
 | `reconcileReminders` | Cada 60 s | `announcements` | — (reencola en Redis) |

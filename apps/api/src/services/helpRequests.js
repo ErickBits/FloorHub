@@ -9,7 +9,16 @@ const SELECT_REQUEST = `
          h.created_at, h.claimed_at, h.resolved_at,
          agent.full_name AS agent_name, supervisor.full_name AS supervisor_name,
          EXTRACT(EPOCH FROM (COALESCE(h.claimed_at, now()) - h.created_at))::int AS wait_seconds,
-         EXTRACT(EPOCH FROM (h.resolved_at - h.claimed_at))::int AS resolution_seconds
+         EXTRACT(EPOCH FROM (h.resolved_at - h.claimed_at))::int AS resolution_seconds,
+         COALESCE((
+           SELECT json_agg(json_build_object(
+                    'id', r.id, 'body', r.body, 'author_id', r.author_id, 'author_name', author.full_name,
+                    'author_role', author.role, 'created_at', r.created_at
+                  ) ORDER BY r.created_at)
+             FROM help_request_replies r
+             JOIN users author ON author.id = r.author_id
+            WHERE r.help_request_id = h.id
+         ), '[]'::json) AS replies
     FROM help_requests h
     JOIN users agent ON agent.id = h.agent_id
     LEFT JOIN users supervisor ON supervisor.id = h.claimed_by`;
@@ -105,5 +114,29 @@ export async function resolveRequest(context, user, id) {
   }
   const request = await fetchRequest(context.pool, id);
   broadcast(context, EVENTS.helpResolved, request);
+  return request;
+}
+
+// La conversación es entre el agente que pidió ayuda y el supervisor que la tomó,
+// y solo está abierta mientras la solicitud está en atención.
+export async function replyToRequest(context, user, id, input) {
+  const participant = user.role === 'agent' ? 'agent_id' : 'claimed_by';
+  const { rowCount } = await context.pool.query(
+    `INSERT INTO help_request_replies (help_request_id, author_id, body)
+     SELECT id, $2, $3 FROM help_requests
+      WHERE id = $1 AND status = 'in_progress' AND ${participant} = $2`,
+    [id, user.id, input.body],
+  );
+  if (rowCount === 0) {
+    const { rows } = user.role === 'agent'
+      ? await context.pool.query('SELECT status FROM help_requests WHERE id = $1 AND agent_id = $2', [id, user.id])
+      : await context.pool.query('SELECT status FROM help_requests WHERE id = $1 AND team_id = ANY($2)', [id, user.teamIds]);
+    if (rows.length === 0) throw notFound('Solicitud no encontrada');
+    throw new AppError(409, 'cannot_reply', user.role === 'agent'
+      ? 'Solo puedes escribir mientras un supervisor atiende tu solicitud'
+      : 'Solo quien atiende la solicitud puede responderla');
+  }
+  const request = await fetchRequest(context.pool, id);
+  broadcast(context, EVENTS.helpReplied, request);
   return request;
 }

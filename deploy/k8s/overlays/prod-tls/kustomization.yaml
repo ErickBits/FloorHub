@@ -1,0 +1,27 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: floorhub
+# Igual que prod, pero el NLB apunta a Caddy, que sirve HTTPS con un certificado de Let's Encrypt.
+# Lo usa scripts/deploy.sh cuando se ejecuta make deploy-tls.
+resources:
+  - ../prod
+  - caddy.yaml
+labels:
+  - pairs:
+      app.kubernetes.io/part-of: floorhub
+# Con el sufijo de hash, un cambio en el Caddyfile reinicia Caddy al desplegar.
+configMapGenerator:
+  - name: caddy-config
+    files:
+      - Caddyfile
+patches:
+  # Nginx deja de ser público: solo Caddy le habla, dentro del clúster.
+  - target:
+      kind: Service
+      name: nginx
+    patch: |-
+      - op: replace
+        path: /spec/type
+        value: ClusterIP
+      - op: remove
+        path: /metadata/annotations

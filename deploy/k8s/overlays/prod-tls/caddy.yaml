@@ -1,0 +1,100 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: caddy
+spec:
+  replicas: 1
+  # Una sola réplica con Recreate: el certificado vive en el disco del pod, y con dos a la vez
+  # Let's Encrypt podría validar el reto contra la réplica que no lo inició.
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: caddy
+  template:
+    metadata:
+      labels:
+        app: caddy
+    spec:
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: caddy
+          image: caddy:2-alpine
+          args: ["caddy", "run", "--config", "/etc/caddy/Caddyfile", "--adapter", "caddyfile"]
+          # Sin este ConfigMap el pod espera: deploy.sh lo crea cuando conoce la IP del NLB.
+          envFrom:
+            - configMapRef:
+                name: caddy-site
+          ports:
+            - containerPort: 8080
+            - containerPort: 8443
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
+          resources:
+            requests: { cpu: 50m, memory: 64Mi }
+            limits: { cpu: 300m, memory: 128Mi }
+          readinessProbe:
+            tcpSocket:
+              port: 8080
+            periodSeconds: 5
+          livenessProbe:
+            tcpSocket:
+              port: 8080
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          volumeMounts:
+            - name: config
+              mountPath: /etc/caddy
+              readOnly: true
+            # Certificados y claves. Se pierden si el pod se recrea y Caddy los vuelve a pedir.
+            - name: data
+              mountPath: /data
+            - name: state
+              mountPath: /config
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        - name: config
+          configMap:
+            name: caddy-config
+        - name: data
+          emptyDir:
+            sizeLimit: 16Mi
+        - name: state
+          emptyDir:
+            sizeLimit: 16Mi
+        - name: tmp
+          emptyDir:
+            sizeLimit: 16Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: caddy
+  annotations:
+    # Sin esta anotación, Kubernetes crearía un Classic ELB en lugar de un NLB.
+    service.beta.kubernetes.io/aws-load-balancer-type: nlb
+    service.beta.kubernetes.io/aws-load-balancer-scheme: internet-facing
+    # El NLB lo crea Kubernetes, no Terraform: sin esta etiqueta make cost-check no lo vería.
+    service.beta.kubernetes.io/aws-load-balancer-additional-resource-tags: Project=floorhub
+spec:
+  type: LoadBalancer
+  selector:
+    app: caddy
+  # El NLB solo reenvía TCP: el TLS lo termina Caddy, no AWS.
+  ports:
+    - name: http
+      port: 80
+      targetPort: 8080
+    - name: https
+      port: 443
+      targetPort: 8443

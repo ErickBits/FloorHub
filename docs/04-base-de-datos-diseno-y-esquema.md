@@ -40,6 +40,7 @@ announcement_acks (announcement_id PK, user_id PK, acknowledged_at)
                   FK(announcement_id, user_id)→announcement_recipients
 help_requests (id PK, team_id FK→teams, agent_id FK→users, type, priority, summary, status,
                claimed_by FK→users, created_at, claimed_at, resolved_at)
+help_request_replies (id PK, help_request_id FK→help_requests, author_id FK→users, body, created_at)
 ```
 
 ### 2.3. Diagrama entidad-relación
@@ -183,6 +184,20 @@ La llave foránea compuesta `(announcement_id, user_id)` apunta a `announcement_
 Los tiempos **no se guardan, se calculan**: espera = `claimed_at − created_at` y atención = `resolved_at − claimed_at`. Así no pueden contradecir a las columnas de las que salen.
 
 ![Estados de una solicitud](diagramas/estados_solicitud.png)
+
+### 3.10. Tabla `help_request_replies`
+
+Conversación entre el agente y el supervisor que tomó la solicitud (migración `002_help_request_replies.sql`).
+
+| Columna | Tipo | Nulo | Por defecto | Restricción | Descripción |
+|---|---|---|---|---|---|
+| `id` | `uuid` | No | `gen_random_uuid()` | PK | Identificador |
+| `help_request_id` | `uuid` | No | — | FK → `help_requests` | Solicitud respondida |
+| `author_id` | `uuid` | No | — | FK → `users` | Agente o supervisor que escribió el mensaje |
+| `body` | `text` | No | — | Entre 1 y 1000 caracteres | Texto del mensaje |
+| `created_at` | `timestamptz` | No | `now()` | — | Cuándo se envió |
+
+La API solo inserta si la solicitud está `in_progress` y quien escribe es su `agent_id` o su `claimed_by`; al resolverla, la conversación se cierra. El rol de la aplicación tiene `SELECT` e `INSERT`, así que los mensajes no se editan ni se borran.
 
 ## 4. Índices de rendimiento
 

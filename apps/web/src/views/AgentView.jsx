@@ -1,5 +1,6 @@
 import { useCallback, useState } from 'react';
 import { api } from '../api.js';
+import { HelpReplies, ReplyForm } from '../components/HelpReplies.jsx';
 import { Elapsed } from '../components/Tick.jsx';
 import { ConnectionBadge, PageHeader, Shell } from '../components/Shell.jsx';
 import { formatDateTime, formatDuration, HELP_STATUS, HELP_TYPES } from '../format.js';
@@ -31,7 +32,7 @@ function AnnouncementCard({ announcement, onAcknowledge, reminded }) {
   );
 }
 
-function HelpPanel({ requests, onCreate }) {
+function HelpPanel({ requests, user, onCreate, onReply }) {
   const [type, setType] = useState('difficult_customer');
   const [summary, setSummary] = useState('');
   const [error, setError] = useState(null);
@@ -65,6 +66,14 @@ function HelpPanel({ requests, onCreate }) {
             ) : (
               <p className="small"><strong>{active.supervisor_name}</strong> tomó tu solicitud. Esperaste {formatDuration(active.wait_seconds)}.</p>
             )}
+            <HelpReplies replies={active.replies} userId={user.id} />
+            {active.status === 'in_progress' && (
+              <ReplyForm
+                onSend={(body) => onReply(active.id, body)}
+                label={`Mensaje para ${active.supervisor_name}`}
+                placeholder="Responde a tu supervisor o pide más detalles"
+              />
+            )}
           </div>
         ) : (
           <form onSubmit={submit} className="stack">
@@ -90,6 +99,7 @@ function HelpPanel({ requests, onCreate }) {
             {resolved.map((request) => (
               <li key={request.id}>
                 {HELP_TYPES[request.type]} · espera {formatDuration(request.wait_seconds)} · atención {formatDuration(request.resolution_seconds)}
+                <HelpReplies replies={request.replies} userId={user.id} />
               </li>
             ))}
           </ul>
@@ -136,6 +146,10 @@ export function AgentView({ user, notify, onLogout }) {
         upsertRequest(request);
         notify(`${request.supervisor_name} tomó tu solicitud`, 'success');
       },
+      'help:replied': (request) => {
+        upsertRequest(request);
+        if (request.replies.at(-1)?.author_id !== user.id) notify(`${request.supervisor_name} te escribió`, 'info');
+      },
       'help:resolved': (request) => {
         upsertRequest(request);
         notify('Tu solicitud quedó resuelta', 'success');
@@ -160,6 +174,16 @@ export function AgentView({ user, notify, onLogout }) {
     upsertRequest(request);
   }
 
+  async function reply(id, body) {
+    try {
+      const { request } = await api(`/help-requests/${id}/replies`, { method: 'POST', body: { body } });
+      upsertRequest(request);
+    } catch (failure) {
+      notify(failure.message, 'error');
+      throw failure;
+    }
+  }
+
   const pendingCount = announcements.filter((item) => item.priority === 'critical' && !item.acknowledged_at).length;
   const activeRequest = requests.find((request) => request.status !== 'resolved');
   const pages = [
@@ -173,7 +197,7 @@ export function AgentView({ user, notify, onLogout }) {
       {currentId === 'ayuda' ? (
         <>
           <PageHeader title="Levantar la mano" description="Pide ayuda a tu supervisor. Las solicitudes se atienden por prioridad." />
-          <HelpPanel requests={requests} onCreate={createRequest} />
+          <HelpPanel requests={requests} user={user} onCreate={createRequest} onReply={reply} />
         </>
       ) : (
         <>

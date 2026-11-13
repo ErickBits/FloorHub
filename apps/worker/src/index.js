@@ -14,6 +14,8 @@ const context = createContext('worker', config);
 const { log, queues } = context;
 const connection = createDurableRedis(config.redisUrl, log);
 
+// Los trabajos de mantenimiento se ejecutan en el worker de mantenimiento, no en los workers de recordatorios o notificaciones.
+// cola de maintenance, que ejecuta trabajos periódicos y de limpieza. Se registran al arrancar y al reconectar.
 const maintenanceJobs = {
   'reconcile-reminders': reconcileReminders,
   'sweep-presence': sweepPresence,

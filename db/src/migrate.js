@@ -6,6 +6,7 @@ import { runner } from 'node-pg-migrate';
 
 const migrationsDir = join(dirname(fileURLToPath(import.meta.url)), '..', 'migrations');
 
+/* Arma la configuracion de conexion */
 export function connectionFor(url) {
   const caFile = process.env.DB_SSL_CA_FILE;
   return {
@@ -32,7 +33,7 @@ async function waitForDatabase(connection, attempts = 30) {
   }
 }
 
-// El rol de la aplicación se crea antes de las migraciones porque estas le conceden permisos.
+// El rol de el usuario de la base de datos en la aplicación se crea antes de las migraciones porque estas le conceden permisos.
 async function ensureAppRole(connection, appUrl) {
   const { username, password } = new URL(appUrl);
   const client = new pg.Client(connection);

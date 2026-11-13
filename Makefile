@@ -5,7 +5,7 @@ KUBECTL_DEV := kubectl --context $(MINIKUBE_PROFILE) -n floorhub
 BOOTSTRAP_DIR := deploy/terraform/bootstrap
 
 .PHONY: help install up down reset logs migrate seed test lint build \
-	k8s-up k8s-url k8s-logs k8s-down bootstrap deploy destroy cost-check aws-logs demo-password
+	k8s-up k8s-url k8s-logs k8s-down bootstrap deploy deploy-tls destroy cost-check aws-logs demo-password
 
 help: ## Muestra esta ayuda
 	@grep -hE '^[a-zA-Z0-9_-]+:.*?## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-16s\033[0m %s\n", $$1, $$2}'
@@ -61,6 +61,9 @@ bootstrap: ## Una sola vez: crea el bucket de estado, OIDC y el presupuesto
 
 deploy: ## CREA RECURSOS QUE COBRAN en AWS (IMAGE_OWNER=usuario IMAGE_TAG=sha)
 	./scripts/deploy.sh
+
+deploy-tls: ## Como deploy, pero por HTTPS con Let's Encrypt y sslip.io (ACME_STAGING=1 para pruebas)
+	TLS=1 ./scripts/deploy.sh
 
 destroy: ## Destruye todo en AWS y verifica que no quede nada
 	./scripts/destroy.sh

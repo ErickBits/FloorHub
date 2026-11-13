@@ -8,6 +8,11 @@ on:
         description: SHA completo del commit cuyas imágenes se desplegarán
         required: true
         type: string
+      tls:
+        description: Servir por HTTPS con Let's Encrypt y sslip.io
+        required: false
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -38,4 +43,5 @@ jobs:
         env:
           IMAGE_OWNER: ${{ github.repository_owner }}
           IMAGE_TAG: ${{ inputs.image_tag }}
+          TLS: ${{ inputs.tls && '1' || '' }}
         run: ./scripts/deploy.sh

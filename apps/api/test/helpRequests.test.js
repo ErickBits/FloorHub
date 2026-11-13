@@ -88,6 +88,36 @@ describe('cola de ayuda', () => {
     expect(res.status).toBe(409);
   });
 
+  it('el agente y quien tomó la solicitud conversan hasta que se resuelve', async () => {
+    const { body: { request: created } } = await create(org.agent);
+    const send = (user, body) =>
+      request(app).post(`/api/help-requests/${created.id}/replies`).set(bearer(user)).send({ body });
+
+    expect((await send(org.supervisor, 'Hola')).status).toBe(409); // Aún está pendiente.
+    expect((await send(org.agent, 'Hola')).status).toBe(409);
+    await request(app).post(`/api/help-requests/${created.id}/claim`).set(bearer(org.supervisor));
+
+    expect((await send(org.supervisor, 'Ofrécele el plan de retención')).status).toBe(201);
+    const res = await send(org.agent, '¿Y si no acepta?');
+    expect(res.status).toBe(201);
+    expect(res.body.request.replies).toMatchObject([
+      { body: 'Ofrécele el plan de retención', author_id: org.supervisor.id, author_role: 'supervisor' },
+      { body: '¿Y si no acepta?', author_id: org.agent.id, author_role: 'agent' },
+    ]);
+
+    expect((await send(org.supervisor2, 'Hola')).status).toBe(409);
+    expect((await send(org.agent2, 'Hola')).status).toBe(404);
+    expect((await send(org.otherSupervisor, 'Hola')).status).toBe(404);
+    expect((await send(org.supervisor, '')).status).toBe(400);
+
+    const { body } = await request(app).get('/api/help-requests').set(bearer(org.supervisor));
+    expect(body.requests.find((item) => item.id === created.id).replies).toHaveLength(2);
+
+    await request(app).post(`/api/help-requests/${created.id}/resolve`).set(bearer(org.supervisor));
+    expect((await send(org.supervisor, 'Hola')).status).toBe(409);
+    expect((await send(org.agent, 'Hola')).status).toBe(409);
+  });
+
   it('valida las entradas', async () => {
     const res = await request(app).post('/api/help-requests').set(bearer(org.agent)).send({ type: 'otro', summary: '' });
     expect(res.status).toBe(400);

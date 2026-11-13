@@ -6,6 +6,7 @@ export const EVENTS = {
   helpCreated: 'help:created',
   helpClaimed: 'help:claimed',
   helpResolved: 'help:resolved',
+  helpReplied: 'help:replied',
   presenceChanged: 'presence:changed',
   presenceHeartbeat: 'presence:heartbeat',
 };

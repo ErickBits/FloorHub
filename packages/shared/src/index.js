@@ -1,3 +1,5 @@
+//gateway to all shared modules
+
 export { loadConfig } from './config.js';
 export { createPool, withTransaction } from './db.js';
 export { createContext, createDurableRedis, createFastRedis, createLogger } from './context.js';

@@ -4,10 +4,11 @@ import { matches, SearchBox, SearchSelect } from '../components/SearchSelect.jsx
 import { ConnectionBadge, PageHeader, Shell } from '../components/Shell.jsx';
 import { Elapsed } from '../components/Tick.jsx';
 import { formatDateTime, formatDuration, HELP_STATUS, HELP_TYPES } from '../format.js';
+import { HelpReplies, ReplyForm } from '../components/HelpReplies.jsx';
 import { navigate, useHashRoute } from '../router.js';
 import { useSocket } from '../useSocket.js';
 
-function HelpQueue({ requests, user, onClaim, onResolve }) {
+function HelpQueue({ requests, user, onClaim, onResolve, onReply }) {
   const open = requests.filter((request) => request.status !== 'resolved');
   const resolved = requests.filter((request) => request.status === 'resolved');
   return (
@@ -21,7 +22,22 @@ function HelpQueue({ requests, user, onClaim, onResolve }) {
               <span className="badge">{HELP_STATUS[request.status]}</span>
             </div>
             <div className="small muted">{HELP_TYPES[request.type]}</div>
-            <p>{request.summary}</p>
+            {request.status === 'in_progress' && request.claimed_by === user.id ? (
+              <blockquote className="help-question">
+                <span className="small muted">Consulta del agente</span>
+                <p className="prewrap">{request.summary}</p>
+              </blockquote>
+            ) : (
+              <p>{request.summary}</p>
+            )}
+            <HelpReplies replies={request.replies} userId={user.id} />
+            {request.status === 'in_progress' && request.claimed_by === user.id && (
+              <ReplyForm
+                onSend={(body) => onReply(request.id, body)}
+                label="Mensaje para el agente"
+                placeholder="Responde la consulta; la conversación sigue abierta hasta que resuelvas"
+              />
+            )}
             <div className="row-between">
               <span className="small muted">
                 {request.status === 'pending' ? <>Esperando <Elapsed since={request.created_at} /></> : <>Atiende {request.supervisor_name}</>}
@@ -273,6 +289,13 @@ export function SupervisorView({ user, notify, onLogout }) {
       },
       'help:claimed': refreshQueue,
       'help:resolved': refreshQueue,
+      'help:replied': (request) => {
+        refreshQueue();
+        const last = request.replies.at(-1);
+        if (request.claimed_by === user.id && last?.author_id === request.agent_id) {
+          notify(`${request.agent_name} te escribió`, 'info');
+        }
+      },
       'presence:changed': ({ userId, online }) => {
         setAgents((current) => current.map((agent) => (agent.id === userId ? { ...agent, online } : agent)));
       },
@@ -310,6 +333,16 @@ export function SupervisorView({ user, notify, onLogout }) {
     refreshQueue();
   }
 
+  async function reply(id, body) {
+    try {
+      const { request } = await api(`/help-requests/${id}/replies`, { method: 'POST', body: { body } });
+      setRequests((current) => current.map((item) => (item.id === id ? request : item)));
+    } catch (failure) {
+      notify(failure.message, 'error');
+      throw failure;
+    }
+  }
+
   const pendingCount = requests.filter((item) => item.status === 'pending').length;
   const onlineCount = agents.filter((agent) => agent.online).length;
   const pages = [
@@ -325,7 +358,7 @@ export function SupervisorView({ user, notify, onLogout }) {
     cola: (
       <>
         <PageHeader title="Cola de ayuda" description={`${pendingCount} solicitud(es) en espera, ordenadas por prioridad.`} />
-        <HelpQueue requests={requests} user={user} onClaim={claim} onResolve={resolve} />
+        <HelpQueue requests={requests} user={user} onClaim={claim} onResolve={resolve} onReply={reply} />
       </>
     ),
     presencia: (

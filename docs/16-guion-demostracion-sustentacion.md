@@ -31,7 +31,7 @@
 | 3 | `daniela.ospina@floorhub.com` | Agente de Retención |
 | 4 | `andres.morales@floorhub.com` | Administrador |
 
-- [ ] Verificar el indicador «● En vivo» en las ventanas 1, 2 y 3.
+- [ ] Verificar el indicador «● Disponible» en las ventanas 1, 2 y 3.
 - [ ] Tener una terminal abierta en el repositorio para la prueba de concurrencia y el reinicio de Redis.
 
 ## 3. Escenario 1: el problema y la presencia (2 min)
@@ -114,7 +114,7 @@ Explicar: 10 peticiones al mismo tiempo, 1 gana y 9 reciben 409, gracias al `UPD
 | ¿Por qué `sessionStorage` y no cookies? | Permite una sesión por ventana. El riesgo ante XSS se mitiga con React, que escapa el contenido, y una CSP estricta. |
 | ¿Cuánto cuesta en AWS? | Unos 0,26 USD por hora; el proyecto completo estima 8,16 USD frente a un límite de 30 USD. El riesgo real es olvidar destruir, por eso existen `make destroy`, `make cost-check` y alertas de presupuesto. |
 | ¿Por qué no usaron Spot? | Ahorraría unos 1,57 USD, pero AWS podría retirar un nodo en plena presentación. |
-| ¿Qué limitaciones tiene? | HTTP sin TLS en la demo (requiere dominio), Redis y RDS sin alta disponibilidad por costo, y un superusuario podría desactivar los triggers. Están documentadas con su alternativa. |
+| ¿Qué limitaciones tiene? | HTTPS con un nombre de sslip.io en lugar de un dominio propio, Redis y RDS sin alta disponibilidad por costo, y un superusuario podría desactivar los triggers. Están documentadas con su alternativa. |
 | ¿Cómo prueban sin mocks? | Las pruebas corren contra PostgreSQL y Redis reales en Docker, con una base exclusiva que se crea y destruye en cada ejecución. |
 
 ## 9. Conclusión de la sustentación

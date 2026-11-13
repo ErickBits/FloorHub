@@ -344,7 +344,7 @@ Tres advertencias sobre AWS Budgets:
 
 | Limitación | Motivo | Alternativa futura |
 |---|---|---|
-| La demo usa HTTP, sin TLS público | Un certificado de ACM requiere un dominio propio | Dominio y listener TLS en el NLB |
+| HTTPS solo con un nombre de sslip.io (`make deploy-tls`) | Un certificado de ACM requiere un dominio propio; Let's Encrypt acepta el nombre de sslip.io sin costo | Dominio propio y listener TLS con ACM en el NLB |
 | Redis tiene una sola réplica | Es lo acordado por costo; una caída causa una interrupción breve de tiempo real y colas | Sentinel o ElastiCache |
 | RDS Single-AZ | Costo | Multi-AZ |
 | Nodos en subred pública | Evita el NAT Gateway | Subredes privadas con NAT o *VPC endpoints* |

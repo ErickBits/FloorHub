@@ -174,6 +174,7 @@ Todas las rutas, salvo `login`, `/health` y `/livez`, exigen la cabecera `Author
 | POST | `/api/help-requests` | Agente | Levanta la mano | 201, 400, 409, 429 |
 | GET | `/api/help-requests` | Agente, Supervisor | Propias o cola de sus equipos | 200 |
 | POST | `/api/help-requests/{id}/claim` | Supervisor | Toma la solicitud | 200, 404, 409 |
+| POST | `/api/help-requests/{id}/replies` | Agente, Supervisor | Envía un mensaje en la conversación (el agente dueño o quien la tomó, mientras está en atención) | 201, 400, 404, 409 |
 | POST | `/api/help-requests/{id}/resolve` | Supervisor | Resuelve la solicitud | 200, 404, 409 |
 | GET | `/api/directory` | Supervisor | Campañas, equipos y agentes que puede elegir como destino | 200 |
 | GET | `/api/presence` | Supervisor | Agentes de sus equipos con su estado de conexión | 200 |
@@ -186,7 +187,7 @@ Todas las rutas, salvo `login`, `/health` y `/livez`, exigen la cabecera `Author
 | `announcement:published` | Servidor → cliente | `user:{autor}`, `team:{id}:supervisors` | Se publica un comunicado |
 | `announcement:acknowledged` | Servidor → cliente | `user:{autor}`, `team:{id}:supervisors` | Un agente confirma |
 | `announcement:reminder` | Servidor → cliente | `user:{agente}` | El worker envía una ronda |
-| `help:created` / `help:claimed` / `help:resolved` | Servidor → cliente | `team:{id}:supervisors`, `user:{agente}` | Cambia una solicitud |
+| `help:created` / `help:claimed` / `help:replied` / `help:resolved` | Servidor → cliente | `team:{id}:supervisors`, `user:{agente}` | Cambia una solicitud |
 | `presence:changed` | Servidor → cliente | `team:{id}:supervisors` | Un agente se conecta o se desconecta |
 | `presence:heartbeat` | Cliente → servidor | — | Cada 15 s, para seguir en línea |
 

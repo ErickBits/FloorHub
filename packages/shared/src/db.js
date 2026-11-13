@@ -15,6 +15,8 @@ export function createPool(config, log) {
   return pool;
 }
 
+
+// Transacción: si falla algo, se revierte todo. Si no, se confirma al final.
 export async function withTransaction(pool, work) {
   const client = await pool.connect();
   try {

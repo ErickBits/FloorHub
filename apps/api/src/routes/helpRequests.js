@@ -2,13 +2,15 @@ import { Router } from 'express';
 import { z } from 'zod';
 import { requireRole } from '../middleware/auth.js';
 import { rateLimit } from '../middleware/rateLimit.js';
-import { claimRequest, createRequest, listRequests, resolveRequest } from '../services/helpRequests.js';
+import { claimRequest, createRequest, listRequests, replyToRequest, resolveRequest } from '../services/helpRequests.js';
 import { shortText, uuidParam } from '../validation.js';
 
 const createSchema = z.object({
   type: z.enum(['approval', 'difficult_customer', 'process_question']),
   summary: shortText(500),
 });
+
+const replySchema = z.object({ body: shortText(1000) });
 
 export function helpRequestRoutes(context) {
   const router = Router();
@@ -35,6 +37,11 @@ export function helpRequestRoutes(context) {
   router.post('/:id/resolve', requireRole('supervisor'), async (req, res) => {
     const { id } = uuidParam.parse(req.params);
     res.json({ request: await resolveRequest(context, req.user, id) });
+  });
+
+  router.post('/:id/replies', requireRole('agent', 'supervisor'), async (req, res) => {
+    const { id } = uuidParam.parse(req.params);
+    res.status(201).json({ request: await replyToRequest(context, req.user, id, replySchema.parse(req.body)) });
   });
 
   return router;

@@ -528,6 +528,43 @@ paths:
             application/json:
               schema: { $ref: '#/components/schemas/Error' }
 
+  /api/help-requests/{id}/replies:
+    parameters:
+      - $ref: '#/components/parameters/Id'
+    post:
+      tags: [Ayuda]
+      summary: Envía un mensaje en la conversación de la solicitud (agente o supervisor que la tomó)
+      description: |
+        Conversación entre el agente que pidió ayuda y el supervisor que la tomó. Solo se puede
+        escribir mientras la solicitud está en atención; al resolverla, se cierra. Emite `help:replied`.
+        Un agente recibe 404 si la solicitud no es suya.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [body]
+              properties:
+                body: { type: string, minLength: 1, maxLength: 1000 }
+      responses:
+        '201':
+          description: Mensaje registrado; devuelve la solicitud con toda la conversación
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  request: { $ref: '#/components/schemas/HelpRequest' }
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409':
+          description: La solicitud no está en atención o no la atiende quien escribe (`cannot_reply`)
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+
   /api/help-requests/{id}/resolve:
     parameters:
       - $ref: '#/components/parameters/Id'
@@ -894,3 +931,15 @@ components:
         supervisor_name: { type: string, nullable: true }
         wait_seconds: { type: integer, description: 'claimed_at (o ahora) − created_at' }
         resolution_seconds: { type: integer, nullable: true, description: 'resolved_at − claimed_at' }
+        replies:
+          type: array
+          description: Conversación entre el agente y el supervisor, del mensaje más antiguo al más reciente
+          items:
+            type: object
+            properties:
+              id: { type: string, format: uuid }
+              body: { type: string }
+              author_id: { type: string, format: uuid }
+              author_name: { type: string }
+              author_role: { type: string, enum: [agent, supervisor] }
+              created_at: { type: string, format: date-time }

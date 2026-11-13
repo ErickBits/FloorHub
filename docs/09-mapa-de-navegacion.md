@@ -56,8 +56,8 @@ Al crear un equipo, la aplicación abre directamente su página de edición para
 |---|---|---|---|
 | Todos | (sin hash) | Inicio de sesión | `POST /auth/login`, `GET /auth/me` |
 | Agente | `#/comunicados` | Comunicados | `GET /announcements`, `POST /announcements/{id}/ack` |
-| Agente | `#/ayuda` | Levantar la mano | `GET /help-requests`, `POST /help-requests` |
-| Supervisor | `#/cola` | Cola de ayuda | `GET /help-requests`, `POST /help-requests/{id}/claim`, `POST /help-requests/{id}/resolve` |
+| Agente | `#/ayuda` | Levantar la mano | `GET /help-requests`, `POST /help-requests`, `POST /help-requests/{id}/replies` |
+| Supervisor | `#/cola` | Cola de ayuda | `GET /help-requests`, `POST /help-requests/{id}/claim`, `POST /help-requests/{id}/replies`, `POST /help-requests/{id}/resolve` |
 | Supervisor | `#/presencia` | Presencia | `GET /presence` |
 | Supervisor | `#/comunicados/nuevo` | Nuevo comunicado | `GET /directory`, `POST /announcements` |
 | Supervisor | `#/comunicados` | Comunicados publicados | `GET /announcements`, `GET /announcements/{id}/status` |
@@ -75,8 +75,8 @@ La vista del supervisor carga la cola, la presencia y el directorio a la vez al 
 | Página | Eventos que la actualizan sin recargar |
 |---|---|
 | Agente · Comunicados | `announcement:new`, `announcement:reminder` |
-| Agente · Levantar la mano | `help:created`, `help:claimed`, `help:resolved` |
-| Supervisor · Cola de ayuda | `help:created`, `help:claimed`, `help:resolved` |
+| Agente · Levantar la mano | `help:created`, `help:claimed`, `help:replied`, `help:resolved` |
+| Supervisor · Cola de ayuda | `help:created`, `help:claimed`, `help:replied`, `help:resolved` |
 | Supervisor · Presencia | `presence:changed` |
 | Supervisor · Comunicados publicados | `announcement:published`, `announcement:acknowledged` |
 

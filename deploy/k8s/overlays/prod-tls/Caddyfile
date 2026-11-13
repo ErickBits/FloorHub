@@ -1,0 +1,28 @@
+# Caddy termina TLS delante de Nginx y obtiene el certificado de Let's Encrypt por su cuenta.
+# SITE_HOST (p. ej. 3-91-10-20.sslip.io) y ACME_CA los fija scripts/deploy.sh en el ConfigMap caddy-site.
+{
+	admin off
+	# Puertos sin privilegios: el Service traduce 80 -> 8080 y 443 -> 8443.
+	http_port 8080
+	https_port 8443
+	# La redirección automática incluiría el puerto 8443 en la URL; se hace a mano más abajo.
+	auto_https disable_redirects
+	acme_ca {$ACME_CA}
+	# HTTP/3 va por UDP y el Service solo expone TCP: anunciarlo haría que el navegador lo intente en vano.
+	servers {
+		protocols h1 h2
+	}
+}
+
+# Toda petición HTTP, también la que llega por el hostname del NLB, se manda a HTTPS.
+# El reto HTTP-01 de Let's Encrypt lo responde Caddy antes de llegar a esta regla.
+http:// {
+	redir https://{$SITE_HOST}{uri} permanent
+}
+
+{$SITE_HOST} {
+	# Una vez visto por HTTPS, el navegador no vuelve a intentar HTTP durante un día.
+	header Strict-Transport-Security "max-age=86400"
+	# Caddy reenvía WebSocket sin configuración extra.
+	reverse_proxy nginx:80
+}

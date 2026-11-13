@@ -1,18 +1,18 @@
-# Manual de Usuario — FloorHub
+# Manual de Usuario — Supervisor — FloorHub
 
 *Comunicados y ayuda en vivo para el piso de operaciones*
 
-La versión maquetada para imprimir está en [manual/manual-de-usuario.pdf](manual/manual-de-usuario.pdf).
+Esta guía cubre solo el rol de **supervisor**. Hay un manual por rol: [agente](13-manual-de-usuario-agente.md), [supervisor](13-manual-de-usuario-supervisor.md) y [administrador](13-manual-de-usuario-administrador.md).
+
+La versión maquetada para imprimir está en [manual/manual-de-usuario-supervisor.pdf](manual/manual-de-usuario-supervisor.pdf).
 
 ## Tabla de contenido
 
 1. [Antes de empezar](#1-antes-de-empezar)
 2. [Acceso al sistema](#2-acceso-al-sistema)
 3. [Recorrido por la interfaz](#3-recorrido-por-la-interfaz)
-4. [Guía del agente](#4-guía-del-agente)
-5. [Guía del supervisor](#5-guía-del-supervisor)
-6. [Guía del administrador](#6-guía-del-administrador)
-7. [Preguntas frecuentes y solución de problemas](#7-preguntas-frecuentes-y-solución-de-problemas)
+4. [Guía del supervisor](#4-guía-del-supervisor)
+5. [Preguntas frecuentes y solución de problemas](#5-preguntas-frecuentes-y-solución-de-problemas)
 
 ---
 
@@ -62,19 +62,9 @@ En una instalación local, todas usan la contraseña `Demo-FloorHub-2026`.
 
 | Rol | Nombre | Correo | Equipo |
 |---|---|---|---|
-| Administrador | Andrés Felipe Morales | `andres.morales@floorhub.com` | — |
 | Supervisor | Laura Valentina Gómez | `laura.gomez@floorhub.com` | Retención |
 | Supervisor | Julián Andrés Herrera | `julian.herrera@floorhub.com` | Soporte técnico |
 | Supervisor | Paola Andrea Castaño | `paola.castano@floorhub.com` | Tarjetas |
-| Agente | Santiago Ramírez | `santiago.ramirez@floorhub.com` | Retención |
-| Agente | Daniela Ospina | `daniela.ospina@floorhub.com` | Retención |
-| Agente | Camilo Rincón | `camilo.rincon@floorhub.com` | Retención |
-| Agente | Valentina Muñoz | `valentina.munoz@floorhub.com` | Soporte técnico |
-| Agente | Sebastián Cárdenas | `sebastian.cardenas@floorhub.com` | Soporte técnico |
-| Agente | Mariana López | `mariana.lopez@floorhub.com` | Soporte técnico |
-| Agente | Felipe Arango | `felipe.arango@floorhub.com` | Tarjetas |
-| Agente | Natalia Quintero | `natalia.quintero@floorhub.com` | Tarjetas |
-| Agente | Juan David Mejía | `juan.mejia@floorhub.com` | Tarjetas |
 
 ## 2. Acceso al sistema
 
@@ -98,60 +88,32 @@ Pulsa **Salir** en la esquina superior derecha. El token de la ventana se borra 
 
 - **Barra superior:** logo, indicador de conexión, tu nombre y rol, y el botón **Salir**.
 - **Menú lateral:** una entrada por cada función de tu rol, con contadores (solicitudes en espera, comunicados por confirmar). En el celular pasa a ser una barra horizontal.
-- **Indicador de conexión:** «● En vivo» significa que recibes los cambios al instante; «Reconectando…» indica que se perdió la conexión. Al recuperarse, la página se actualiza sola.
+- **Indicador de conexión:** «● Disponible» significa que estás conectado y recibes los cambios al instante; «Reconectando…» indica que se perdió la conexión. Al recuperarse, la página se actualiza sola.
 - **Avisos emergentes:** aparecen en la esquina inferior derecha (nuevo comunicado, recordatorio, solicitud tomada, errores).
 - **Buscadores:** no distinguen tildes («munoz» encuentra «Muñoz»). En los selectores puedes usar ↑ ↓ para moverte, Enter para elegir y Esc para cerrar.
 
-## 4. Guía del agente
+## 4. Guía del supervisor
 
-### 4.1. Leer y confirmar comunicados
-
-En **Comunicados** ves los avisos dirigidos a ti. Los críticos sin confirmar tienen borde rojo y el menú muestra cuántos te faltan.
-
-1. Lee el comunicado completo.
-2. Pulsa **Leí y entendí**.
-3. El comunicado muestra la fecha y hora de tu confirmación, y tu supervisor la ve al instante.
-
-![Comunicados del agente](manual/capturas/10-agente-comunicados.png)
-
-> Si no confirmas un comunicado crítico recibirás recordatorios. La confirmación no se puede deshacer: queda como registro de auditoría.
-
-### 4.2. Levantar la mano
-
-1. Entra a **Levantar la mano**.
-2. Elige el tipo: cliente difícil, aprobación o duda de proceso.
-3. Escribe un resumen corto (hasta 500 caracteres).
-4. Pulsa **Solicitar ayuda**.
-
-![Formulario para pedir ayuda](manual/capturas/12-agente-levantar-la-mano.png)
-
-Mientras esperas verás el tiempo transcurrido. Cuando un supervisor la toma, aparece su nombre; al resolverla, pasa a **Resueltas recientemente** con los tiempos de espera y atención.
-
-![Solicitud pendiente con el tiempo de espera](manual/capturas/11-agente-solicitud-pendiente.png)
-
-> Solo puedes tener una solicitud activa a la vez.
-
-## 5. Guía del supervisor
-
-### 5.1. Atender la cola de ayuda
+### 4.1. Atender la cola de ayuda
 
 La **Cola de ayuda** muestra las solicitudes de tus equipos, ordenadas por prioridad y luego por antigüedad. El borde indica la prioridad: rojo alta, ámbar media y azul baja.
 
 1. Pulsa **Tomar** en la solicitud que vas a atender. El agente ve tu nombre al instante.
-2. Atiende al agente (en persona, por chat o por teléfono).
-3. Pulsa **Resolver**. Quedan registrados los tiempos de espera y de atención.
+2. Lee la consulta del agente, que aparece destacada en la tarjeta.
+3. Escribe en **Mensaje para el agente** y pulsa **Enviar mensaje**. El agente lo ve al instante y puede contestarte; la conversación sigue abierta hasta que resuelvas.
+4. Pulsa **Resolver**. Quedan registrados los tiempos de espera y de atención.
 
 ![Cola de ayuda](manual/capturas/20-supervisor-cola.png)
 
-> Si otro supervisor tomó la solicitud un instante antes, verás un aviso. Cada solicitud tiene un único responsable.
+> Si otro supervisor tomó la solicitud un instante antes, verás un aviso. Cada solicitud tiene un único responsable, y solo ese supervisor puede conversar con el agente mientras está en atención.
 
-### 5.2. Ver la presencia
+### 4.2. Ver la presencia
 
 En **Presencia** ves qué agentes de tus equipos están conectados (punto verde). Puedes buscar por nombre y marcar **Solo conectados**.
 
 ![Presencia del equipo](manual/capturas/21-supervisor-presencia.png)
 
-### 5.3. Publicar un comunicado
+### 4.3. Publicar un comunicado
 
 1. Entra a **Nuevo comunicado**.
 2. Escribe el título y el mensaje.
@@ -163,62 +125,21 @@ En **Presencia** ves qué agentes de tus equipos están conectados (punto verde)
 
 > Solo puedes publicar a tus equipos, a agentes de esos equipos o a campañas donde supervises al menos un equipo. Un comunicado publicado no se puede editar: para corregirlo, publica uno nuevo.
 
-### 5.4. Seguir la confirmación
+### 4.4. Seguir la confirmación
 
 En **Comunicados publicados** cada fila muestra el porcentaje de confirmación. Pulsa un comunicado para ver quién confirmó (con la hora) y quién falta (con los recordatorios recibidos). Se actualiza en vivo.
 
 ![Detalle de confirmación](manual/capturas/23-supervisor-comunicados-publicados.png)
 
-## 6. Guía del administrador
-
-### 6.1. Usuarios
-
-El **Listado de usuarios** muestra a todas las personas con su rol, equipo y estado. Usa el buscador (nombre, correo o equipo) y el filtro por rol.
-
-![Listado de usuarios](manual/capturas/30-admin-usuarios.png)
-
-**Agregar un usuario**
-
-1. Entra a **Agregar usuario**.
-2. Escribe el nombre completo, el correo y una contraseña inicial de al menos 8 caracteres.
-3. Elige el rol. Si es **Agente**, busca y elige su equipo.
-4. Pulsa **Crear usuario**.
-
-![Agregar usuario](manual/capturas/31-admin-agregar-usuario.png)
-
-> Solo los agentes pertenecen directamente a un equipo. Un supervisor se crea sin equipo y luego se asigna desde la página del equipo.
-
-**Editar o desactivar un usuario:** pulsa **Editar**. Puedes cambiar el nombre, el rol, el equipo y la contraseña (déjala vacía para conservarla). Desmarca **Usuario activo** para impedirle iniciar sesión. Los usuarios no se borran, para conservar el historial.
-
-![Editar usuario](manual/capturas/32-admin-editar-usuario.png)
-
-### 6.2. Campañas
-
-En **Listado de campañas** ves cada campaña con su número de equipos. Con **Agregar campaña** creas una; con **Editar** la renombras o la desactivas.
-
-![Listado de campañas](manual/capturas/33-admin-campanas.png)
-
-### 6.3. Equipos y supervisores
-
-Con **Agregar equipo** eliges la campaña y escribes el nombre. Al crearlo se abre su página para asignar supervisores. En la edición puedes renombrarlo, desactivarlo, asignar o quitar supervisores y ver sus agentes.
-
-![Listado de equipos](manual/capturas/34-admin-equipos.png)
-
-![Editar equipo y asignar supervisores](manual/capturas/35-admin-editar-equipo.png)
-
-> Un equipo sin supervisor queda marcado en ámbar: sus solicitudes de ayuda no tendrían quién las atienda.
-
-## 7. Preguntas frecuentes y solución de problemas
+## 5. Preguntas frecuentes y solución de problemas
 
 | Situación | Qué hacer |
 |---|---|
 | «Correo o contraseña incorrectos» | Revisa mayúsculas y espacios. Si sigue, pide al administrador que restablezca tu contraseña o verifique que tu usuario esté activo. |
 | No puedo entrar tras varios intentos | Superaste 10 intentos en un minuto. Espera un minuto. |
 | Aparece «Reconectando…» | Se perdió la conexión en vivo. Revisa tu red; al reconectar, la página se actualiza sola. |
-| No puedo pedir ayuda | Ya tienes una solicitud activa. Espera a que se resuelva. |
 | Aviso al pulsar **Tomar** | Otro supervisor la tomó un instante antes. Sigue con la siguiente de la cola. |
 | No encuentro un equipo al publicar | Solo aparecen tus equipos. Pide al administrador que te asigne como supervisor. |
 | Quiero corregir un comunicado | Los comunicados publicados no se editan. Publica uno nuevo. |
-| Un agente no aparece en el equipo | El administrador debe editar el usuario y elegir el equipo correcto. |
 
 Los términos del dominio están en el [glosario](15-glosario-tecnico.md).

@@ -1,5 +1,7 @@
+/* zod validar datos**/
 import { z } from 'zod';
 
+/* Con zod validamos los datos que entran*/ 
 const schema = z.object({
   NODE_ENV: z.string().default('development'),
   LOG_LEVEL: z.string().default('info'),

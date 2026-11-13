@@ -3,8 +3,11 @@ kind: Job
 metadata:
   name: migrate-seed
 spec:
+  #max intentos
   backoffLimit: 3
+  #max job duration
   activeDeadlineSeconds: 300
+  #una vez terminado, el job se elimina después de 1 hora
   ttlSecondsAfterFinished: 3600
   template:
     metadata:

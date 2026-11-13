@@ -12,16 +12,21 @@ spec:
       labels:
         app: api
     spec:
+      #credenciales desactivadas por seguridad (acceso restringido)
       automountServiceAccountToken: false
       terminationGracePeriodSeconds: 30
+      #reglas de seguridad para que el contenedor no se ejecute como root
       securityContext:
         runAsNonRoot: true
+        #usuario normal sin privilegios
         runAsUser: 1000
         runAsGroup: 1000
+        #evita que el contenedor pueda usar llamadas al sistema no seguras
         seccompProfile:
           type: RuntimeDefault
       topologySpreadConstraints:
         # Reparte las réplicas entre nodos: perder uno no debe tumbar el servicio.
+        #diferencia entre nodo y nodo no puede ser mayor a 1
         - maxSkew: 1
           topologyKey: kubernetes.io/hostname
           whenUnsatisfiable: ScheduleAnyway

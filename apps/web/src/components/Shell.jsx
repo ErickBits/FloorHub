@@ -61,7 +61,7 @@ export function PageHeader({ title, description, actions }) {
 export function ConnectionBadge({ connected }) {
   return (
     <span className={`connection ${connected ? 'connection-on' : 'connection-off'}`}>
-      {connected ? 'En vivo' : 'Reconectando…'}
+      {connected ? 'Disponible' : 'Reconectando…'}
     </span>
   );
 }

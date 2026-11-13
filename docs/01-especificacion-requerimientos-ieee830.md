@@ -44,7 +44,7 @@ Las dos funciones necesitan tiempo real: un comunicado crítico no sirve si lleg
 | Cola de ayuda: levantar la mano, tomar y resolver | Chat entre agente y supervisor |
 | Presencia en vivo de los agentes de un equipo | Reportes históricos y tableros de analítica |
 | Resumen diario (se escribe en los logs) | Firma criptográfica de la auditoría |
-| Despliegue local (Docker Compose, minikube) y en AWS (EKS) | TLS público en la demo (requiere un dominio propio) |
+| Despliegue local (Docker Compose, minikube) y en AWS (EKS), con HTTPS opcional por Let's Encrypt | Dominio propio para la demo pública |
 
 ---
 

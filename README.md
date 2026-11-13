@@ -65,7 +65,7 @@ El índice completo, con 18 documentos y una guía de lectura según quién eres
 | Especificación de requerimientos (IEEE 830) y matriz en Excel | [`docs/01-especificacion-requerimientos-ieee830.md`](docs/01-especificacion-requerimientos-ieee830.md), [`docs/requerimientos`](docs/requerimientos) |
 | Arquitectura (C4), base de datos, casos de uso, clases y secuencias | [`docs/02`](docs/02-arquitectura-software-c4-y-backend.md) a [`docs/12`](docs/12-diagramas-de-secuencia.md) y [`docs/diagramas`](docs/diagramas) |
 | Contrato de la API (OpenAPI 3.0) | [`docs/api/openapi_floorhub.yaml`](docs/api/openapi_floorhub.yaml) |
-| Manual de usuario (Markdown, ODT y PDF) | [`docs/13-manual-de-usuario.md`](docs/13-manual-de-usuario.md), [`docs/manual`](docs/manual) |
+| Manuales de usuario por rol (Markdown, ODT y PDF) | [agente](docs/13-manual-de-usuario-agente.md), [supervisor](docs/13-manual-de-usuario-supervisor.md), [administrador](docs/13-manual-de-usuario-administrador.md), [`docs/manual`](docs/manual) |
 | Plan y reporte de pruebas (ISO 25010) | [`docs/14-plan-y-reporte-de-pruebas-iso25010.md`](docs/14-plan-y-reporte-de-pruebas-iso25010.md) |
 | Guion de la sustentación | [`docs/16-guion-demostracion-sustentacion.md`](docs/16-guion-demostracion-sustentacion.md) |
 | Diseño técnico, costos y guía por fases | [`docs/17-diseno-tecnico-y-costos.md`](docs/17-diseno-tecnico-y-costos.md), [`docs/18-guia-por-fases.md`](docs/18-guia-por-fases.md) |
@@ -165,6 +165,7 @@ Ejecuta `make help` para ver todos.
 | `make k8s-up` / `make k8s-url` / `make k8s-down` | Despliega en minikube, abre el acceso o borra el clúster |
 | `make bootstrap` | Crea una sola vez el estado, OIDC y el presupuesto |
 | `make deploy` | **Crea recursos que cobran** en AWS |
+| `make deploy-tls` | Igual que `make deploy`, pero sirve la demo por HTTPS (Let's Encrypt y sslip.io) |
 | `make destroy` | Destruye todo y verifica que no quede nada |
 | `make cost-check` | Muestra los recursos activos del proyecto |
 
@@ -206,6 +207,8 @@ IMAGE_OWNER=tu-usuario IMAGE_TAG=$(git rev-parse HEAD) make deploy
 make demo-password                          # 3. Contraseña de los usuarios
 ```
 
+Para servir la demo por **HTTPS**, cambia `make deploy` por `make deploy-tls`. No necesitas dominio ni costo extra: Caddy pide a Let's Encrypt un certificado para `IP-del-NLB.sslip.io` y el script imprime esa URL. Los detalles están en el [manual técnico](docs/06-manual-tecnico-instalacion-y-despliegue.md#72-desplegar).
+
 La opción alternativa es el workflow **Deploy to AWS**, que pide aprobación manual.
 
 > **Destruye desde el mismo lugar donde desplegaste.** Solo quien creó el clúster tiene acceso a Kubernetes. Si despliegas desde GitHub y destruyes desde tu equipo, añade tu ARN en `admin_principal_arns`. Aun sin acceso, `make destroy` borra el balanceador por la API de AWS.
@@ -245,7 +248,7 @@ Las alertas de presupuesto **avisan pero no detienen el gasto**. La alerta del 2
 
 | Limitación | Motivo | Alternativa futura |
 |---|---|---|
-| La demo pública usa HTTP | Un certificado requiere un dominio propio | Dominio y TLS en el NLB. Mientras tanto, usa solo datos ficticios. |
+| HTTPS con un nombre de sslip.io, no con un dominio propio | `make deploy-tls` usa Let's Encrypt sin dominio; `make deploy` sigue siendo HTTP | Dominio propio con ACM en el NLB. Usa solo datos ficticios. |
 | Redis con una sola réplica | Costo | Sentinel o ElastiCache |
 | RDS Single-AZ | Costo | Multi-AZ |
 | Nodos en subred pública | Evita el NAT Gateway | Subredes privadas con NAT |

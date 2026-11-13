@@ -5,6 +5,7 @@ import { EVENTS, expirePresence, rooms, withTransaction } from '@floorhub/shared
 export async function sendReminder(context, { announcementId, round }) {
   const { pool, queues, config } = context;
 
+  // Actaliza la base de datos y obtiene los destinatarios pendientes. Si no hay ninguno, cancela la siguiente ronda.
   const outcome = await withTransaction(pool, async (client) => {
     const { rows: [announcement] } = await client.query(
       `SELECT id, title, reminder_interval_minutes, reminders_sent, expires_at
@@ -15,6 +16,7 @@ export async function sendReminder(context, { announcementId, round }) {
     );
     if (!announcement) return null;
 
+    //Quien no ha confirmado
     const { rows: pending } = await client.query(
       `SELECT r.user_id
          FROM announcement_recipients r
@@ -22,12 +24,15 @@ export async function sendReminder(context, { announcementId, round }) {
         WHERE r.announcement_id = $1 AND k.user_id IS NULL`,
       [announcementId],
     );
+
+    //Verificar si el comunicado ha expirado o si no hay destinatarios pendientes. Si es así, cancelar la siguiente ronda.
     const expired = announcement.expires_at && new Date(announcement.expires_at) <= new Date();
     if (pending.length === 0 || expired) {
       await client.query('UPDATE announcements SET next_reminder_at = NULL WHERE id = $1', [announcementId]);
       return null;
     }
 
+    // Actualizar la base de datos para reflejar que se envió un recordatorio y programar la siguiente ronda si corresponde.
     const userIds = pending.map((row) => row.user_id);
     await client.query(
       `UPDATE announcement_recipients SET reminder_count = reminder_count + 1, last_reminded_at = now()
@@ -67,6 +72,8 @@ export async function sendReminder(context, { announcementId, round }) {
   return { sent: userIds.length };
 }
 
+
+// Envía notificaciones en tiempo real a los clientes conectados. No es obligatorio: si falla, se ignora.
 export function deliverNotification({ emitter }, { room, event, payload }) {
   emitter.to(room).emit(event, payload);
 }

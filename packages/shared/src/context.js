@@ -5,6 +5,10 @@ import { createCache } from './cache.js';
 import { createPool } from './db.js';
 import { createQueues } from './queues.js';
 
+
+/* We´ll set up a tool box with all the connections and utilities services need to run, like databases, redis, queues  etc*/
+
+// info basica del servicio en json
 export function createLogger(service, level = 'info') {
   return pino({ level, base: { service }, timestamp: pino.stdTimeFunctions.isoTime });
 }
