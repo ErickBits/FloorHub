@@ -15,6 +15,10 @@ flowchart LR
         subgraph S["services/"]
             SAN["announcements<br/><small>publicar, listar, estado, confirmar</small>"]
             SH["helpRequests<br/><small>crear, listar, tomar, resolver</small>"]
+            SAU["auth<br/><small>login</small>"]
+            SAD["campaigns · teams · users<br/><small>administración</small>"]
+            SDP["directory · presence<br/><small>consultas del supervisor</small>"]
+            SCO["common<br/><small>buildUpdate, refreshUserAccess</small>"]
         end
         ERR["middleware/errors<br/><small>zod, AppError y errores de PostgreSQL</small>"]
     end
@@ -32,5 +36,8 @@ flowchart LR
     AUTH --> SC
     SAN --> DB & CA & QU & RT
     SH --> DB & RT
-    RAD --> DB & CA
+    RA --> SAU --> DB
+    RAD --> SAD --> DB & CA
+    SAD --> SCO
+    RD2 & RP --> SDP --> DB
     R -.->|"excepciones"| ERR

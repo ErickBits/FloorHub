@@ -30,7 +30,7 @@ FloorHub está escrito en JavaScript con **módulos y funciones**, no con clases
 |---|---|---|
 | Presentación HTTP | `routes/*.js`, `middleware/*.js` | Servicios, `validation.js`, `errors.js` |
 | Tiempo real | `gateway/server.js` | `shared/scope.js`, `shared/realtime.js` |
-| Negocio | `services/announcements.js`, `services/helpRequests.js` | `Context` |
+| Negocio | `services/*.js`: `announcements`, `helpRequests`, `auth`, `campaigns`, `teams`, `users`, `directory`, `presence` y `common` | `Context` |
 | Trabajos | `worker/jobs.js` | `Context` |
 | Infraestructura compartida | `shared/context.js`, `db.js`, `cache.js`, `queues.js`, `realtime.js`, `scope.js`, `config.js` | PostgreSQL, Redis |
 
@@ -38,7 +38,7 @@ FloorHub está escrito en JavaScript con **módulos y funciones**, no con clases
 
 | Función | Ruta o disparador | Tablas que lee | Tablas que escribe |
 |---|---|---|---|
-| `login` (en `routes/auth.js`) | `POST /api/auth/login` | `users` | — |
+| `login` (en `services/auth.js`) | `POST /api/auth/login` | `users` | — |
 | `getUserScope` | Toda petición autenticada | `users`, `team_supervisors`, `teams` | — |
 | `publishAnnouncement` | `POST /api/announcements` | `users`, `teams` | `announcements`, `announcement_targets`, `announcement_recipients` |
 | `listForAgent` | `GET /api/announcements` (agente) | `announcement_recipients`, `announcements`, `announcement_acks`, `users` | — |

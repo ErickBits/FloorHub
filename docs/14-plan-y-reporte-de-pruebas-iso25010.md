@@ -38,11 +38,15 @@
 
 ## 3. Suite 2: cola de ayuda y concurrencia
 
-10 casos en `apps/api/test/helpRequests.test.js`. El más importante lanza **10 peticiones simultáneas** para tomar la misma solicitud: exactamente 1 recibe 200 y 9 reciben 409, y la base queda con un único responsable. También cubre la prioridad fijada por el servidor, la solicitud única por agente, el aislamiento entre equipos, el rate limiting y la inyección SQL. **Resultado: 10/10 aprobados.**
+11 casos en `apps/api/test/helpRequests.test.js`. El más importante lanza **10 peticiones simultáneas** para tomar la misma solicitud: exactamente 1 recibe 200 y 9 reciben 409, y la base queda con un único responsable. También cubre la prioridad fijada por el servidor, la solicitud única por agente, el aislamiento entre equipos, el rate limiting, la inyección SQL y la conversación entre agente y supervisor. **Resultado: 11/11 aprobados.**
 
 ## 4. Suite 3: comunicados y registro de auditoría
 
 11 casos en `apps/api/test/announcements.test.js`: porcentaje de confirmación, alcance por campaña, confirmación idempotente, publicación fuera del alcance, comunicados ajenos, intervalo obligatorio, invalidación de caché, funcionamiento sin Redis y las tres capas de auditoría (permisos, triggers incluso para el dueño y contenido inmutable). **Resultado: 11/11 aprobados.**
+
+## 4.1. Suite 3.1: administración, directorio y presencia
+
+7 casos en `apps/api/test/admin.test.js`: alta, listado y edición de campañas, equipos y usuarios; rechazo de ediciones vacías o de registros inexistentes; reasignación de supervisores con actualización inmediata del alcance; respuestas sin el hash de la contraseña; y un directorio y una presencia limitados al alcance del supervisor. **Resultado: 7/7 aprobados.**
 
 ## 5. Suites 4 y 5: tiempo real y worker
 
@@ -55,30 +59,30 @@ El detalle caso por caso (ID, resultado esperado y estado) está en [07-reglas-d
 
 | Dato | Valor |
 |---|---|
-| Fecha | 10/11/2026 |
+| Fecha | 13/11/2026 |
 | Comando | `npx vitest run --reporter=verbose` |
 | Entorno | PostgreSQL 17-alpine y Redis 8-alpine en Docker, Node.js 26 |
-| Archivos | 5 de 5 aprobados |
-| Casos | **42 de 42 aprobados (100 %)** |
-| Duración | 4,16 s |
+| Archivos | 6 de 6 aprobados |
+| Casos | **50 de 50 aprobados (100 %)** |
+| Duración | 5,07 s |
 | Lint | `npx eslint .` sin errores ni advertencias |
 
 | Característica ISO 25010 | Casos automáticos | Aprobados |
 |---|---:|---:|
-| Seguridad | 17 | 17 |
-| Adecuación funcional | 14 | 14 |
+| Seguridad | 20 | 20 |
+| Adecuación funcional | 19 | 19 |
 | Fiabilidad | 7 | 7 |
 | Eficiencia de desempeño | 2 | 2 |
 | Mantenibilidad (observabilidad) | 2 | 2 |
-| **Total** | **42** | **42** |
+| **Total** | **50** | **50** |
 
 <details>
 <summary>Clasificación de cada caso por característica</summary>
 
 | Característica | Casos |
 |---|---|
-| Seguridad (17) | PA-01 a PA-07, PH-05, PH-06, PH-09, PH-10, PC-04, PC-05, PC-09, PC-10, PC-11, PG-01 |
-| Adecuación funcional (14) | PH-01, PH-02, PH-03, PH-04, PH-07, PH-08, PC-01, PC-02, PC-03, PC-06, PW-01, PW-03, PW-04, PW-07 |
+| Seguridad (20) | PA-01 a PA-07, PH-05, PH-06, PH-09, PH-10, PC-04, PC-05, PC-09, PC-10, PC-11, PG-01, PD-04, PD-05, PD-06 |
+| Adecuación funcional (19) | PH-01, PH-02, PH-03, PH-04, PH-07, PH-08, PH-11, PC-01, PC-02, PC-03, PC-06, PW-01, PW-03, PW-04, PW-07, PD-01, PD-02, PD-03, PD-07 |
 | Fiabilidad (7) | PC-08, PG-04, PG-05, PW-02, PW-05, PW-06, PG-03 |
 | Eficiencia de desempeño (2) | PC-07, PG-02 |
 | Mantenibilidad (2) | PA-08, PG-06 |

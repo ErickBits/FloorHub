@@ -190,9 +190,9 @@ Característica: Alcance del supervisor
 
 | Requisito | Endpoint o evento | Componente | Tabla / clave | Prueba automática |
 |---|---|---|---|---|
-| RF-01, RF-03 | `POST /api/auth/login`, `GET /api/auth/me` | `routes/auth.js`, `shared/scope.js` | `users` | auth: «inicia sesión y devuelve al usuario sin su hash» |
-| RF-04 a RF-07 | `/api/admin/users` | `routes/admin.js` | `users` | auth: «valida las reglas de rol y equipo», «un usuario desactivado pierde el acceso» |
-| RF-08 a RF-10 | `/api/admin/campaigns`, `/teams`, `/teams/:id/supervisors` | `routes/admin.js` | `campaigns`, `teams`, `team_supervisors` | auth: «bloquea las rutas de administración a otros roles» |
+| RF-01, RF-03 | `POST /api/auth/login`, `GET /api/auth/me` | `services/auth.js`, `shared/scope.js` | `users` | auth: «inicia sesión y devuelve al usuario sin su hash» |
+| RF-04 a RF-07 | `/api/admin/users` | `services/users.js` | `users` | auth: «valida las reglas de rol y equipo», «un usuario desactivado pierde el acceso» |
+| RF-08 a RF-10 | `/api/admin/campaigns`, `/teams`, `/teams/:id/supervisors` | `services/campaigns.js`, `services/teams.js` | `campaigns`, `teams`, `team_supervisors` | auth: «bloquea las rutas de administración a otros roles»; admin: «reasigna supervisores y actualiza su alcance de inmediato» |
 | RF-11, RF-12 | `POST /api/announcements` | `services/announcements.js` | `announcements`, `announcement_targets`, `announcement_recipients` | announcements: «impide publicar fuera del alcance», «una campaña alcanza a sus equipos» |
 | RF-13 | `announcement:new` | `gateway/server.js`, Redis Pub/Sub | — | gateway: «un evento publicado por la API llega a clientes de cualquier réplica» |
 | RF-14 | `POST /api/announcements/:id/ack` | `services/announcements.js` | `announcement_acks` | announcements: «confirmar dos veces conserva la fecha original», registro de auditoría |
@@ -203,5 +203,5 @@ Característica: Alcance del supervisor
 | RF-20 | `POST /api/help-requests/:id/claim` | `claimRequest` | `help_requests` | helpRequests: «dos supervisores nunca toman la misma solicitud» |
 | RF-21 | `POST /api/help-requests/:id/resolve` | `resolveRequest` | `help_requests` | helpRequests: «recorre pendiente, en atención y resuelta» |
 | RF-22 | `help:claimed`, `help:resolved` | gateway, sala `user:{id}` | — | gateway: «un agente no recibe eventos de otro equipo» |
-| RF-24 | `GET /api/presence`, `presence:changed` | gateway, `worker/sweepPresence` | `presence:team:{id}` (Redis) | gateway: presencia; worker: «expira la presencia» |
+| RF-24 | `GET /api/presence`, `presence:changed` | `services/presence.js`, gateway, `worker/sweepPresence` | `presence:team:{id}` (Redis) | gateway: presencia; worker: «expira la presencia» |
 | RF-02, RF-23, RF-25 | — | `apps/web` | — | Verificación manual (ver [14-plan-y-reporte-de-pruebas-iso25010.md](14-plan-y-reporte-de-pruebas-iso25010.md)) |

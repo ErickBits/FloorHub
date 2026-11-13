@@ -30,7 +30,7 @@ FloorHub/
 │   │   ├── index.js             # Arranque y apagado limpio (SIGTERM)
 │   │   ├── middleware/          # auth (JWT y rol), rateLimit, errors
 │   │   ├── routes/              # auth, admin, announcements, helpRequests, directory, presence
-│   │   ├── services/            # Reglas de negocio: announcements, helpRequests
+│   │   ├── services/            # Lógica y SQL: announcements, helpRequests, auth, campaigns, teams, users, directory, presence
 │   │   ├── validation.js        # Esquemas zod reutilizables
 │   │   └── errors.js            # AppError, notFound, forbidden, conflict
 │   ├── gateway/src/server.js    # Socket.IO: autenticación, salas y presencia

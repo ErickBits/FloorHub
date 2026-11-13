@@ -15,6 +15,10 @@ Recorrido de una petición: `app.js` → `authenticate` → `requireRole` → ru
 | routes/ | auth, admin, announcements, helpRequests, directory y presence |
 | services/announcements | Publicar, listar, estado y confirmar |
 | services/helpRequests | Crear, listar, tomar y resolver |
+| services/auth | Login con bcrypt y emisión del JWT |
+| services/campaigns, teams, users | Administración: crear, listar y editar; asignar supervisores |
+| services/directory, presence | Destinos posibles de un comunicado y agentes conectados |
+| services/common | Utilidades de administración: UPDATE parcial y refresco del acceso |
 
 ## Paquete compartido (@floorhub/shared)
 

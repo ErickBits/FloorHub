@@ -104,6 +104,7 @@ El autor ve a toda la audiencia; otro supervisor solo ve a los agentes de sus eq
 | PH-08 | Valida las entradas | 400 con datos inválidos o un id que no es UUID | ✅ Aprobado |
 | PH-09 | Limita la creación de solicitudes | 429 al superar el límite | ✅ Aprobado |
 | PH-10 | Una inyección SQL se trata como texto | El texto se guarda tal cual y la tabla sigue intacta | ✅ Aprobado |
+| PH-11 | El agente y quien tomó la solicitud conversan hasta que se resuelve | Las respuestas se guardan en orden; tras resolver, 409 | ✅ Aprobado |
 
 ## 6. Suite de pruebas: comunicados y auditoría (`apps/api/test/announcements.test.js`)
 
@@ -120,6 +121,18 @@ El autor ve a toda la audiencia; otro supervisor solo ve a los agentes de sus eq
 | PC-09 | El rol de la aplicación no puede editar ni borrar confirmaciones | `permission denied` en UPDATE, DELETE y TRUNCATE | ✅ Aprobado |
 | PC-10 | Los triggers lo impiden incluso al dueño de las tablas | `restrict_violation` | ✅ Aprobado |
 | PC-11 | El contenido de un comunicado publicado no se puede cambiar | `restrict_violation` | ✅ Aprobado |
+
+## 6.1. Suite de pruebas: administración, directorio y presencia (`apps/api/test/admin.test.js`)
+
+| ID | Caso de prueba | Resultado esperado | Estado |
+|---|---|---|---|
+| PD-01 | Crea, lista y edita campañas | 201 al crear; aparece en el listado; 200 al desactivar | ✅ Aprobado |
+| PD-02 | Rechaza ediciones vacías o de registros inexistentes | 400 `empty_update`; 404 para equipo o usuario inexistente | ✅ Aprobado |
+| PD-03 | Crea equipos y los lista con sus supervisores | 201; el listado incluye los supervisores de cada equipo | ✅ Aprobado |
+| PD-04 | Reasigna supervisores y actualiza su alcance de inmediato | `/me` refleja el nuevo equipo; 404 si se asigna a un agente | ✅ Aprobado |
+| PD-05 | Edita usuarios sin exponer el hash de la contraseña | 200 sin `password_hash` en la respuesta | ✅ Aprobado |
+| PD-06 | El directorio solo muestra lo que el supervisor puede elegir | Solo sus campañas, equipos y agentes; 403 para un agente | ✅ Aprobado |
+| PD-07 | La presencia lista a los agentes del equipo con su estado | Agentes de sus equipos con `online` | ✅ Aprobado |
 
 ## 7. Suite de pruebas: tiempo real (`apps/gateway/test/gateway.test.js`)
 
@@ -150,22 +163,23 @@ La suite levanta **dos réplicas reales** del gateway conectadas al mismo Redis.
 
 | Dato | Valor |
 |---|---|
-| Fecha de ejecución | 10/11/2026 |
+| Fecha de ejecución | 13/11/2026 |
 | Herramienta | Vitest 5.1.0 con supertest y socket.io-client |
 | Entorno | PostgreSQL 17 y Redis 8 reales en Docker; base `floorhub_test` y Redis índice 1 |
-| Archivos de prueba | 5 aprobados de 5 |
-| Casos de prueba | **42 aprobados de 42** |
-| Duración total | 4,16 s |
+| Archivos de prueba | 6 aprobados de 6 |
+| Casos de prueba | **50 aprobados de 50** |
+| Duración total | 5,07 s |
 | Lint (ESLint) | Sin errores |
 
 | Suite | Casos | Aprobados |
 |---|---:|---:|
 | Autenticación y autorización | 8 | 8 |
-| Cola de ayuda | 10 | 10 |
+| Cola de ayuda | 11 | 11 |
 | Comunicados y auditoría | 11 | 11 |
+| Administración, directorio y presencia | 7 | 7 |
 | Tiempo real (gateway) | 6 | 6 |
 | Trabajos del worker | 7 | 7 |
-| **Total** | **42** | **42** |
+| **Total** | **50** | **50** |
 
 **Por qué contra servicios reales y no con mocks:** un mock nunca habría probado el bloqueo de filas de PostgreSQL (PH-01), los triggers (PC-10) ni la entrega entre réplicas por Redis (PG-02).
 
